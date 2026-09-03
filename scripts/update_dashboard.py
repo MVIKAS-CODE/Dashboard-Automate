@@ -228,7 +228,15 @@ def get_header_map(sheet, max_rows: int = 8) -> tuple[int, dict[str, int]]:
 
 
 def parse_target_sheet(sheet, active_days: int = 25):
-    """Parses customer targets, achieved kg, periods, and KAM personnel."""
+    """Parses customer targets, achieved kg, periods, and KAM personnel.
+
+    Supports two layouts:
+    1. Rich slab layout (Tonnage_of_August_Month):
+       - col: S No | Personnel | Designation | Customer | Total Target |
+              First 10 Target | d1..d10 | Mid 10 Target | d11..d20 |
+              Last 10 Target | d21..d31
+    2. Simple layout: Customer | Target | Achieved columns
+    """
     clients = []
     if not sheet:
         return clients
@@ -237,45 +245,185 @@ def parse_target_sheet(sheet, active_days: int = 25):
     if not rows:
         return clients
 
+    # ── Detect header row ─────────────────────────────────────────────────
     header_row_idx = None
     col_map = {}
     for i, r in enumerate(rows[:8]):
-        m = {normalize_str(c): idx for idx, c in enumerate(r) if c is not None}
-        if any("customer" in k for k in m) and any("target" in k or "person" in k or "kam" in k for k in m):
-            header_row_idx = i
+        m = {}
+        for idx, c in enumerate(r):
+            if c is not None:
+                key = re.sub(r'[^a-zA-Z0-9]', '', str(c)).lower()
+                m[key] = idx
+        if m:
             col_map = m
+            header_row_idx = i
             break
 
     if header_row_idx is None:
-        header_row_idx = 0
-        col_map = {normalize_str(c): idx for idx, c in enumerate(rows[0]) if c is not None}
+        return clients
 
-    cust_col = next((col_map[k] for k in col_map if "customer" in k or "client" in k), 0)
-    person_col = next((col_map[k] for k in col_map if "kam" in k or "person" in k or "handled" in k), None)
-    target_col = next((col_map[k] for k in col_map if "target" in k and "money" not in k), None)
-    achieved_col = next((col_map[k] for k in col_map if "achieved" in k or "actual" in k or "total" in k), None)
+    hdr = rows[header_row_idx]
+
+    # ── Try rich slab layout detection ────────────────────────────────────
+    # Look for "first 10 days target" and "mid 10 days target" headers
+    first10_target_col = None
+    mid10_target_col = None
+    last10_target_col = None
+
+    for idx, cell in enumerate(hdr):
+        if cell is None:
+            continue
+        norm = re.sub(r'[^a-zA-Z0-9]', '', str(cell)).lower()
+        if 'first' in norm and ('10' in norm or 'ten' in norm) and 'target' in norm:
+            first10_target_col = idx
+        elif 'mid' in norm and ('10' in norm or 'ten' in norm) and 'target' in norm:
+            mid10_target_col = idx
+        elif 'last' in norm and ('10' in norm or 'ten' in norm) and 'target' in norm:
+            last10_target_col = idx
+
+    is_rich_layout = (first10_target_col is not None
+                      and mid10_target_col is not None
+                      and last10_target_col is not None)
+
+    if is_rich_layout:
+        # Column index assignments from the rich layout
+        cust_col = next((col_map[k] for k in col_map if 'customer' in k or 'nameofthecustomer' in k), 3)
+        person_col = next((col_map[k] for k in col_map if 'personnel' in k or 'nameofthepersonnel' in k), 1)
+        total_target_col = next((col_map[k] for k in col_map if k in ('totaltarget', 'target')), 4)
+
+        # Daily columns for each slab are those between slab-target cols that are datetime objects
+        def _day_cols_between(start_col, end_col):
+            """Return list of column indices with date headers between start_col and end_col (exclusive)."""
+            cols = []
+            for idx in range(start_col + 1, end_col):
+                val = hdr[idx] if idx < len(hdr) else None
+                if val is not None and hasattr(val, 'day'):   # datetime
+                    cols.append(idx)
+            return cols
+
+        day_cols_first10 = _day_cols_between(first10_target_col, mid10_target_col)
+        day_cols_mid10   = _day_cols_between(mid10_target_col, last10_target_col)
+        # last slab: from last10_target_col to end of row
+        day_cols_last10  = []
+        for idx in range(last10_target_col + 1, len(hdr)):
+            val = hdr[idx] if idx < len(hdr) else None
+            if val is not None and hasattr(val, 'day'):
+                day_cols_last10.append(idx)
+
+        seen_names = set()
+        for r in rows[header_row_idx + 1:]:
+            if not r or len(r) <= cust_col:
+                continue
+            raw_cust = r[cust_col]
+            if not raw_cust or str(raw_cust).strip().lower() in {
+                    'total', 'grand total', 'nan', 'none', 'name of the customer', ''}:
+                continue
+            # Skip pure-number serial rows that have no customer text
+            try:
+                float(str(raw_cust).strip())
+                continue
+            except ValueError:
+                pass
+
+            cust_name = resolve_customer_name(raw_cust)
+            if cust_name in seen_names:
+                # Merge achieved into existing entry (same customer, multiple rows)
+                existing = next((c for c in clients if c['name'] == cust_name), None)
+                if existing:
+                    def _sum_cells(cols):
+                        s = 0.0
+                        for ci in cols:
+                            if ci < len(r) and r[ci] is not None:
+                                try:
+                                    v = float(str(r[ci]).replace(',', ''))
+                                    s += v
+                                except (ValueError, TypeError):
+                                    pass
+                        return s
+                    existing['periods']['first10']['achieved'] = round(
+                        (existing['periods']['first10']['achieved'] or 0) + _sum_cells(day_cols_first10), 2)
+                    existing['periods']['mid10']['achieved'] = round(
+                        (existing['periods']['mid10']['achieved'] or 0) + _sum_cells(day_cols_mid10), 2)
+                    existing['periods']['last10']['achieved'] = round(
+                        (existing['periods']['last10']['achieved'] or 0) + _sum_cells(day_cols_last10), 2)
+                    existing['achieved'] = round(
+                        existing['periods']['first10']['achieved'] +
+                        existing['periods']['mid10']['achieved'] +
+                        existing['periods']['last10']['achieved'], 2)
+                continue
+
+            seen_names.add(cust_name)
+            person = clean_str(r[person_col]) if person_col < len(r) and r[person_col] else 'Not Allotted'
+
+            # Slab targets from dedicated target columns
+            f10_tgt = to_float(r[first10_target_col] if first10_target_col < len(r) else None)
+            m10_tgt = to_float(r[mid10_target_col]   if mid10_target_col   < len(r) else None)
+            l10_tgt = to_float(r[last10_target_col]  if last10_target_col  < len(r) else None)
+
+            # Use explicit total target if present, else sum slabs
+            explicit_total = to_float(r[total_target_col] if total_target_col < len(r) else None)
+            total_target = explicit_total if explicit_total > 0 else round(f10_tgt + m10_tgt + l10_tgt, 2)
+
+            # Achieved = sum of daily cells in each slab
+            def _sum_day_cols(cols):
+                s = 0.0
+                for ci in cols:
+                    if ci < len(r) and r[ci] is not None:
+                        try:
+                            v = float(str(r[ci]).replace(',', ''))
+                            s += v
+                        except (ValueError, TypeError):
+                            pass
+                return round(s, 2)
+
+            f10_ach = _sum_day_cols(day_cols_first10)
+            m10_ach = _sum_day_cols(day_cols_mid10)
+            l10_ach = _sum_day_cols(day_cols_last10)
+            total_achieved = round(f10_ach + m10_ach + l10_ach, 2)
+
+            clients.append({
+                'name': cust_name,
+                'person': person,
+                'target': total_target,
+                'achieved': total_achieved,
+                'activeDays': active_days,
+                'periods': {
+                    'first10': {'target': round(f10_tgt, 2), 'achieved': f10_ach or None},
+                    'mid10':   {'target': round(m10_tgt, 2), 'achieved': m10_ach or None},
+                    'last10':  {'target': round(l10_tgt, 2), 'achieved': l10_ach or None},
+                }
+            })
+
+        return clients
+
+    # ── Fallback: simple layout (Customer | Target | Achieved) ───────────
+    cust_col = next((col_map[k] for k in col_map if 'customer' in k or 'client' in k), 0)
+    person_col = next((col_map[k] for k in col_map if 'kam' in k or 'person' in k or 'handled' in k), None)
+    target_col = next((col_map[k] for k in col_map if 'target' in k and 'money' not in k), None)
+    achieved_col = next((col_map[k] for k in col_map if 'achieved' in k or 'actual' in k or 'total' in k), None)
 
     for r in rows[header_row_idx + 1:]:
         if not r or len(r) <= cust_col:
             continue
         raw_cust = r[cust_col]
-        if not raw_cust or str(raw_cust).strip().lower() in {"total", "grand total", "nan", "none"}:
+        if not raw_cust or str(raw_cust).strip().lower() in {'total', 'grand total', 'nan', 'none'}:
             continue
 
         cust_name = resolve_customer_name(raw_cust)
-        person = clean_str(r[person_col]) if person_col is not None and person_col < len(r) and r[person_col] else "Not Allotted"
+        person = clean_str(r[person_col]) if person_col is not None and person_col < len(r) and r[person_col] else 'Not Allotted'
         target = to_float(r[target_col]) if target_col is not None and target_col < len(r) else 0.0
         achieved = to_float(r[achieved_col]) if achieved_col is not None and achieved_col < len(r) else 0.0
 
         clients.append({
-            "name": cust_name,
-            "person": person,
-            "target": round(target, 2),
-            "achieved": round(achieved, 2),
-            "activeDays": active_days
+            'name': cust_name,
+            'person': person,
+            'target': round(target, 2),
+            'achieved': round(achieved, 2),
+            'activeDays': active_days
         })
 
     return clients
+
 
 
 def parse_order_table(sheet, default_type: str = "Vendor") -> list[dict[str, Any]]:
@@ -403,13 +551,13 @@ def group_tonnage_by_customer(sheet, field: str = "kg") -> list[dict[str, Any]]:
     return [{"name": k, field: round(v, 2)} for k, v in sorted(totals.items(), key=lambda x: x[1], reverse=True)]
 
 
-def process_workbook(excel_path: Path, source_name: str = "") -> dict[str, Any]:
+def process_workbook(excel_path: Path, source_name: str = "", active_days_override: int = 0) -> dict[str, Any]:
     """Extracts, computes, and structures dashboard data from openpyxl workbook."""
     wb = load_workbook(excel_path, data_only=True, read_only=True)
 
     today = date.today()
     # Default active days = today's day - 1 or 25
-    active_days = max(today.day - 1, 1) if today.day > 1 else 1
+    active_days = active_days_override if active_days_override > 0 else max(today.day - 1, 1)
     days_in_month = calendar.monthrange(today.year, today.month)[1]
 
     # Parse sheets
@@ -528,6 +676,8 @@ def main():
     parser = argparse.ArgumentParser(description="Update MVIKAS logistics dashboard data.")
     parser.add_argument("--source", "-s", default=os.getenv("GOOGLE_SHEET_URL", ""), help="Google Sheet URL or local Excel filepath")
     parser.add_argument("--output", "-o", default="data/latest_data.json", help="Path to write latest_data.json")
+    parser.add_argument("--report-date", default="", help="Override report date (YYYY-MM-DD), e.g. 2026-08-31 for August reports")
+    parser.add_argument("--active-days", type=int, default=0, help="Override active operating days (default: auto-computed)")
     args = parser.parse_args()
 
     source = args.source.strip()
@@ -546,13 +696,41 @@ def main():
     print(f"Starting dashboard update pipeline...")
     excel_path, is_temp = download_source(source)
     try:
-        data = process_workbook(excel_path, source_name=Path(source).name)
+        data = process_workbook(excel_path, source_name=Path(source).name, active_days_override=args.active_days)
+        # Override metadata if explicit date/active_days provided
+        if args.report_date:
+            try:
+                rd = datetime.strptime(args.report_date, "%Y-%m-%d").date()
+                data["metadata"]["reportDate"] = rd.strftime("%B %d, %Y")
+                data["metadata"]["monthName"] = rd.strftime("%B")
+                data["metadata"]["year"] = rd.year
+                data["metadata"]["daysInMonth"] = calendar.monthrange(rd.year, rd.month)[1]
+                if not args.active_days:
+                    data["metadata"]["activeDays"] = max(rd.day - 1, 1)
+                for c in data.get("clients", []):
+                    c["activeDays"] = data["metadata"]["activeDays"]
+            except ValueError:
+                print(f"Warning: Could not parse --report-date '{args.report_date}', using auto-detected date.")
+        if args.active_days:
+            data["metadata"]["activeDays"] = args.active_days
+            for c in data.get("clients", []):
+                c["activeDays"] = args.active_days
         out_path = Path(args.output).resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"Successfully generated {out_path}!")
-        print(f"Open: {data['kpis']['openTotal']} | EDD Crossed: {data['kpis']['eddTotal']} | Month Tonnage: {data['kpis']['monthlyTonnageKg']:,.2f} kg | Revenue: ₹{data['kpis']['achievedRevenue']:,.2f}")
+
+        # Also write data/latest_data.js for local file:// execution without CORS restrictions
+        js_path = out_path.with_suffix(".js")
+        with open(js_path, "w", encoding="utf-8") as f:
+            f.write("// Auto-generated by update_dashboard.py\nwindow.DASHBOARD_DATA = ")
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write(";\n")
+        print(f"Successfully generated {js_path}!")
+
+        rev = data['kpis']['achievedRevenue']
+        print(f"Open: {data['kpis']['openTotal']} | EDD Crossed: {data['kpis']['eddTotal']} | Month Tonnage: {data['kpis']['monthlyTonnageKg']:,.2f} kg | Revenue: Rs.{rev:,.2f}")
     finally:
         if is_temp and excel_path.exists():
             try:

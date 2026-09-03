@@ -11,11 +11,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body>
+<body class="anim-ready">
+
+  <!-- Floating Ambient Orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
 
   <!-- Outer Tablet Container (Inspired by Ron Design Studio UI) -->
   <div class="tablet-frame">
     <div class="tablet-canvas">
+      <div class="canvas-shimmer"></div>
 
       <!-- Top Studio Header -->
       <header class="studio-header">
@@ -58,52 +63,46 @@
         </nav>
       </header>
 
-      <!-- Executive Overview Row (Matching Reference Profile Card & Telemetry Readouts) -->
+      <!-- Executive Overview Row — Full-width Telemetry Strip -->
       <section class="overview-section">
-        <!-- Operations Profile Pebble Card -->
-        <div class="profile-pebble">
-          <div class="avatar-box">
-            <span>MV</span>
-            <span class="avatar-dot"></span>
-          </div>
-          <div class="profile-info">
-            <span class="p-status">Operations Active</span>
-            <strong class="p-name">MVIKAS Hub</strong>
-            <span class="p-date" id="header-report-date">August 31, 2026</span>
-          </div>
-        </div>
-
-        <!-- Horizontal Telemetry Readouts -->
+        <!-- Horizontal Telemetry Readouts (full width) -->
         <div class="telemetry-flow">
           <div class="tele-item">
             <span class="t-label">Pipeline</span>
             <strong class="t-val"><span id="kpi-open">714</span> <small>orders</small></strong>
           </div>
+          <div class="tele-divider"></div>
           <div class="tele-item">
             <span class="t-label">Daily Avg</span>
             <strong class="t-val" id="kpi-daily-avg">21,376 <small>kg/day</small></strong>
           </div>
+          <div class="tele-divider"></div>
           <div class="tele-item highlight-amber clickable" onclick="goToEddDetail()" title="Click to view EDD Crossed orders">
             <span class="t-label">EDD Crossed</span>
             <strong class="t-val orange-text"><span id="kpi-edd">234</span> <small id="kpi-edd-pct">33% of open</small></strong>
           </div>
+          <div class="tele-divider"></div>
           <div class="tele-item">
             <span class="t-label">Due Tomorrow</span>
             <strong class="t-val"><span id="kpi-due">69</span> <small>at risk</small></strong>
           </div>
+          <div class="tele-divider"></div>
           <div class="tele-item">
             <span class="t-label">Booked Yesterday</span>
             <strong class="t-val"><span id="kpi-booked">46</span> <small>batch</small></strong>
           </div>
+          <div class="tele-divider"></div>
           <div class="tele-item">
             <span class="t-label">Cumulative Month</span>
             <strong class="t-val" id="kpi-month-ton">534,400 <small>kg</small></strong>
           </div>
+          <div class="tele-divider"></div>
           <div class="tele-item">
             <span class="t-label">Achieved Revenue</span>
             <strong class="t-val" id="kpi-sales-money">₹66.39L <small>/ ₹84.45L</small></strong>
           </div>
           <!-- Hidden fallback nodes for any script queries -->
+          <span id="header-report-date" style="display:none">August 31, 2026</span>
           <span id="kpi-daily-ton" style="display:none">22,398 kg</span>
           <span id="kpi-target-money" style="display:none">₹84,45,000</span>
           <span id="kpi-booked-sub" style="display:none"></span>
@@ -311,6 +310,77 @@
               </select>
             </div>
           </div>
+
+          <!-- 10-Day Slab Summary Strip -->
+          <div class="slab-summary-strip" id="slab-summary-strip">
+            <div class="slab-card" id="slab-first10">
+              <div class="slab-header">
+                <span class="slab-icon">①</span>
+                <span class="slab-label">First 10 Days</span>
+                <span class="slab-pct" id="slab-pct-first10">—</span>
+              </div>
+              <div class="slab-numbers">
+                <div class="slab-num-row">
+                  <span class="slab-num-label">Target</span>
+                  <strong id="slab-target-first10">—</strong>
+                </div>
+                <div class="slab-num-row">
+                  <span class="slab-num-label">Achieved</span>
+                  <strong id="slab-achieved-first10">—</strong>
+                </div>
+              </div>
+              <div class="slab-bar-track">
+                <div class="slab-bar-fill" id="slab-bar-first10"></div>
+              </div>
+            </div>
+
+            <div class="slab-connector"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+
+            <div class="slab-card" id="slab-mid10">
+              <div class="slab-header">
+                <span class="slab-icon">②</span>
+                <span class="slab-label">Mid 10 Days</span>
+                <span class="slab-pct" id="slab-pct-mid10">—</span>
+              </div>
+              <div class="slab-numbers">
+                <div class="slab-num-row">
+                  <span class="slab-num-label">Target</span>
+                  <strong id="slab-target-mid10">—</strong>
+                </div>
+                <div class="slab-num-row">
+                  <span class="slab-num-label">Achieved</span>
+                  <strong id="slab-achieved-mid10">—</strong>
+                </div>
+              </div>
+              <div class="slab-bar-track">
+                <div class="slab-bar-fill" id="slab-bar-mid10"></div>
+              </div>
+            </div>
+
+            <div class="slab-connector"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+
+            <div class="slab-card" id="slab-last10">
+              <div class="slab-header">
+                <span class="slab-icon">③</span>
+                <span class="slab-label">Last 10 Days</span>
+                <span class="slab-pct" id="slab-pct-last10">—</span>
+              </div>
+              <div class="slab-numbers">
+                <div class="slab-num-row">
+                  <span class="slab-num-label">Target</span>
+                  <strong id="slab-target-last10">—</strong>
+                </div>
+                <div class="slab-num-row">
+                  <span class="slab-num-label">Achieved</span>
+                  <strong id="slab-achieved-last10">—</strong>
+                </div>
+              </div>
+              <div class="slab-bar-track">
+                <div class="slab-bar-fill" id="slab-bar-last10"></div>
+              </div>
+            </div>
+          </div>
+
           <div class="legend-row" id="tonnage-legend"></div>
           <div id="tonnage-bars" class="tonnage-bars-stream"></div>
         </div>
@@ -508,6 +578,7 @@
     </div>
   </div>
 
+  <script src="data/latest_data.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

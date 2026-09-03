@@ -20,6 +20,28 @@ const orangeA = (a) => `rgba(245, 130, 32, ${a})`;
 
 const $ = id => document.getElementById(id);
 
+// Animated counter (count up from 0)
+function animateCounter(el, toVal, duration = 900, isFloat = false) {
+  if (!el) return;
+  const startTime = performance.now();
+  const from = 0;
+  const tick = (now) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease out quart
+    const ease = 1 - Math.pow(1 - progress, 4);
+    const current = from + (toVal - from) * ease;
+    el.textContent = isFloat
+      ? current.toFixed(1).toLocaleString('en-IN')
+      : Math.round(current).toLocaleString('en-IN');
+    if (progress < 1) requestAnimationFrame(tick);
+    else el.textContent = isFloat
+      ? toVal.toFixed(1).toLocaleString('en-IN')
+      : Math.round(toVal).toLocaleString('en-IN');
+  };
+  requestAnimationFrame(tick);
+}
+
 // Safe Chart.js wrapper
 function safeChart(ctx, config) {
   if (typeof Chart === 'undefined') {
@@ -258,10 +280,19 @@ function renderDashboard(data) {
   });
 
   // Tonnage Section
+  renderSlabSummary(clients);
   renderForecast(totalTargetMoney, totalSalesMoney, predictedSales, predictedPct, activeDays, daysInMonth);
   renderTonnageBars();
   renderTonnageCharts();
   renderKamSummary();
+
+  // Animate KPI counters
+  setTimeout(() => {
+    animateCounter($('kpi-open'), openTotal, 800);
+    animateCounter($('kpi-edd'), eddTotal, 800);
+    animateCounter($('kpi-due'), dueTotal, 700);
+    animateCounter($('kpi-booked'), bookedTotal, 700);
+  }, 100);
 
   // Daily Section
   renderDailyTable(clients);
@@ -328,6 +359,54 @@ function setTonnagePeriod(p) {
 }
 window.setTonnagePeriod = setTonnagePeriod;
 
+// 10-Day Slab Summary Strip
+function renderSlabSummary(clients) {
+  const periods = ['first10', 'mid10', 'last10'];
+  periods.forEach(p => {
+    let totalTarget = 0, totalAchieved = 0;
+    clients.forEach(c => {
+      const pd = c.periods && c.periods[p];
+      if (pd) {
+        totalTarget += pd.target || 0;
+        totalAchieved += pd.achieved || 0;
+      }
+    });
+    const pct = totalTarget > 0 ? Math.round(totalAchieved / totalTarget * 100) : null;
+    const pctText = pct !== null ? pct + '%' : '—';
+    const barW = pct !== null ? Math.min(pct, 100) : 0;
+
+    const elPct = $('slab-pct-' + p);
+    const elTarget = $('slab-target-' + p);
+    const elAchieved = $('slab-achieved-' + p);
+    const elBar = $('slab-bar-' + p);
+
+    if (elPct) elPct.textContent = pctText;
+    if (elPct) elPct.style.color = pct !== null && pct >= 80 ? '#f58220' : pct !== null && pct >= 50 ? '#f5be18' : '#949187';
+    if (elTarget) elTarget.textContent = totalTarget > 0 ? fK(Math.round(totalTarget)) + ' kg' : '—';
+    if (elAchieved) elAchieved.textContent = totalAchieved > 0 ? fK(Math.round(totalAchieved)) + ' kg' : '—';
+
+    // Animate bar fill
+    if (elBar) {
+      elBar.style.width = '0';
+      setTimeout(() => { elBar.style.width = barW + '%'; }, 200);
+    }
+
+    // Wire click to period filter
+    const slabCard = $('slab-' + p);
+    if (slabCard) {
+      slabCard.onclick = () => {
+        const sel = $('tonnage-period-filter');
+        if (sel) sel.value = p;
+        setTonnagePeriod(p);
+        // Highlight active slab
+        document.querySelectorAll('.slab-card').forEach(c => c.classList.remove('active-slab'));
+        slabCard.classList.add('active-slab');
+      };
+    }
+  });
+}
+window.renderSlabSummary = renderSlabSummary;
+
 function renderTonnageBars() {
   const el = $('tonnage-bars'); if (!el || !APP_DATA) return;
   const clients = APP_DATA.clients || [];
@@ -357,6 +436,7 @@ function renderTonnageBars() {
     const nc = bucketColor(pct);
     const pl = pct !== null ? pct + '%' : '—';
     const nt = c.isNew ? '<span class="badge open" style="margin-left:6px;font-size:0.6rem">New</span>' : '';
+    const glowClass = (pct !== null && pct >= 80) ? ' glow-bar' : '';
     let ta;
     if (ht && ha) ta = fK(achieved) + ' / ' + fK(target) + ` <span style="color:${C.textMuted}">kg</span>`;
     else if (ht && !ha) ta = '0 / ' + fK(target) + ` <span style="color:${C.textMuted}">kg</span>`;
@@ -366,7 +446,7 @@ function renderTonnageBars() {
     return `<div class="client-row">
       <div class="client-name" title="${c.name}"><span class="client-name-text">${c.name}</span>${nt}</div>
       <div class="client-person">${c.person}</div>
-      <div class="prog-bar-wrap"><div class="prog-bar" style="width:${dp}%;background:${nc}"></div></div>
+      <div class="prog-bar-wrap"><div class="prog-bar${glowClass}" style="width:${dp}%;background:${nc}"></div></div>
       <div class="pct-text" style="color:${nc}">${pl}</div>
       <div class="client-tonnage"><div>${ta}</div>${vl}</div>
     </div>`;
@@ -649,11 +729,16 @@ function handleExcelUpload(event) {
 }
 window.handleExcelUpload = handleExcelUpload;
 
-// Main Initialization: Fetch data/latest_data.json with fallback
+// Main Initialization: Use window.DASHBOARD_DATA (from data/latest_data.js) or fetch data/latest_data.json
 async function initDashboard() {
+  if (window.DASHBOARD_DATA) {
+    console.log('Using window.DASHBOARD_DATA (loaded directly via script tag):', window.DASHBOARD_DATA.metadata?.reportDate);
+    renderDashboard(window.DASHBOARD_DATA);
+    return;
+  }
   try {
     const res = await fetch('data/latest_data.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error(HTTP );
     const data = await res.json();
     console.log('Live data loaded from data/latest_data.json:', data.metadata?.reportDate);
     renderDashboard(data);
@@ -663,80 +748,2618 @@ async function initDashboard() {
   }
 }
 
-// Embedded Fallback Data (August 31 baseline)
+// Embedded Fallback Data (August 31 baseline with full 10-day slabs)
 function loadFallbackData() {
+  if (window.DASHBOARD_DATA) {
+    renderDashboard(window.DASHBOARD_DATA);
+    return;
+  }
   const fallback = {
-    metadata: { reportDate: "August 31, 2026", monthName: "August", activeDays: 25, daysInMonth: 31 },
-    kpis: {
-      openTotal: 714, eddTotal: 234, dueTotal: 69, bookedTotal: 46,
-      dailyTonnageKg: 22398.0, monthlyTonnageKg: 534400.0,
-      targetRevenue: 8445000, achievedRevenue: 6639200
+  "metadata": {
+    "generatedAt": "2026-09-03T16:22:45.921216",
+    "sourceName": "August MVLOAD.xlsx",
+    "reportDate": "August 31, 2026",
+    "monthName": "August",
+    "year": 2026,
+    "activeDays": 25,
+    "daysInMonth": 31
+  },
+  "kpis": {
+    "openTotal": 714,
+    "eddTotal": 234,
+    "eddPct": 33,
+    "dueTotal": 99,
+    "bookedTotal": 46,
+    "dailyTonnageKg": 22398.0,
+    "monthlyTonnageKg": 564050.66,
+    "dailyAvgKg": 22562,
+    "targetRevenue": 8445000.0,
+    "achievedRevenue": 7016697.18,
+    "predictedRevenue": 8420036.62,
+    "predictedPct": 99.7
+  },
+  "clients": [
+    {
+      "name": "Carrier Refrigeration",
+      "person": "Sangeet Dhasmana",
+      "target": 293073.0,
+      "achieved": 317027.86,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 80206.0,
+          "achieved": 97073.34
+        },
+        "mid10": {
+          "target": 82701.0,
+          "achieved": 72784.43
+        },
+        "last10": {
+          "target": 130166.0,
+          "achieved": 147686.88
+        }
+      },
+      "pct": 108,
+      "avgDay": 12681,
+      "remaining": 0,
+      "daysNeeded": 0
     },
-    clients: [
-      { name: "Carrier Refrigeration", person: "Sangeet Dhasmana", target: 293073.0, achieved: 303147.75, activeDays: 25 },
-      { name: "Carrier CTD", person: "Deepak Sharma", target: 74460.0, achieved: 78318.92, activeDays: 25 },
-      { name: "Bombax", person: "Sangeet Dhasmana", target: 97357.0, achieved: 78666.54, activeDays: 25 },
-      { name: "Loom Solar Pvt Ltd", person: "Deepak Sharma", target: 14458.0, achieved: 12575.0, activeDays: 25 },
-      { name: "Kumar Services", person: "Deepak Sharma", target: 13725.0, achieved: 11241.6, activeDays: 25 },
-      { name: "Sukuga Technologies Pvt Ltd", person: "Deepak Sharma", target: 10142.0, achieved: 8971.87, activeDays: 25 },
-      { name: "Haier CCR", person: "Deepak Sharma", target: 36298.0, achieved: 8155.23, activeDays: 25 },
-      { name: "Cosmos Pumps Pvt Ltd", person: "Deepak Sharma", target: 11398.0, achieved: 7765.98, activeDays: 25 },
-      { name: "Oneiric Appliances Pvt Ltd", person: "Deepak Sharma", target: 15232.0, achieved: 7286.56, activeDays: 25 },
-      { name: "Medical Science", person: "Sangeet Dhasmana", target: 6013.75, achieved: 6175.01, activeDays: 25 },
-      { name: "Vaidrishi Laboratories Pvt Ltd", person: "Sangeet Dhasmana", target: 2357.0, achieved: 2361.51, activeDays: 25 },
-      { name: "Mitras Technocrafts Pvt Ltd-HR", person: "Deepak Sharma", target: 13501.0, achieved: 2211.71, activeDays: 25 },
-      { name: "Conficore", person: "Sangeet Dhasmana", target: 5000.0, achieved: 2158.97, activeDays: 25 },
-      { name: "Epson", person: "Sangeet Dhasmana", target: 3000.0, achieved: 2125.8, activeDays: 25 },
-      { name: "HERCULES NUTRA", person: "Sangeet Dhasmana", target: 10000.0, achieved: 1343.22, activeDays: 25, isNew: true },
-      { name: "MEDGLOBE THERAPEUTICS", person: "Sangeet Dhasmana", target: 10000.0, achieved: 1315.98, activeDays: 25, isNew: true },
-      { name: "Paramount Surgimed Ltd", person: "Deepak Sharma", target: 12039.0, achieved: 329.97, activeDays: 25 },
-      { name: "Khusbhu Enterprises", person: "Deepak Sharma", target: 0, achieved: 251.0, activeDays: 25, isNew: true },
-      { name: "Edusoft Healthcare Ltd", person: "Deepak Sharma", target: 3631.0, achieved: 0, activeDays: 25 }
-    ],
-    openData: [
-      { name: "Carrier Refrigeration", count: 304 },
-      { name: "Bombax", count: 252 },
-      { name: "Carrier CTD", count: 79 },
-      { name: "Sukuga Technologies Pvt Ltd", count: 18 },
-      { name: "Haier CCR", count: 13 },
-      { name: "Medical Science", count: 8 },
-      { name: "Oneiric Appliances Pvt Ltd", count: 7 },
-      { name: "Kumar Services", count: 7 },
-      { name: "Loom Solar Pvt Ltd", count: 6 },
-      { name: "Vaidrishi Laboratories Pvt Ltd", count: 4 }
-    ],
-    eddData: [
-      { name: "Carrier Refrigeration", count: 117 },
-      { name: "Bombax", count: 60 },
-      { name: "Haier CCR", count: 10 },
-      { name: "Medical Science", count: 7 },
-      { name: "Carrier CTD", count: 7 },
-      { name: "Oneiric Appliances Pvt Ltd", count: 6 },
-      { name: "Kumar Services", count: 6 },
-      { name: "Loom Solar Pvt Ltd", count: 5 }
-    ],
-    dueData: [
-      { name: "Carrier Refrigeration", count: 35 },
-      { name: "Bombax", count: 34 },
-      { name: "Carrier CTD", count: 25 },
-      { name: "Haier CCR", count: 1 }
-    ],
-    bookedData: [
-      { name: "Carrier Refrigeration", count: 45 },
-      { name: "Khusbhu Enterprises", count: 1 }
-    ],
-    dailyTonnageData: [
-      { name: "Carrier Refrigeration", kg: 22147 },
-      { name: "Khusbhu Enterprises", kg: 251 }
-    ],
-    eddDetail: [
-      { id: "MVS/26-27/12533", name: "Carrier Refrigeration", transporter: "XP INDIA", edd: "30 Aug 2026", reason: "Transit Delay", type: "Vendor" },
-      { id: "MVS/26-27/12534", name: "Carrier Refrigeration", transporter: "XP INDIA", edd: "30 Aug 2026", reason: "Transit Delay", type: "Vendor" },
-      { id: "MVS/26-27/11861", name: "Bombax", transporter: "EKART", edd: "27 Aug 2026", reason: "Delayed- Mall Delivery Timing Restriction", type: "Customer" },
-      { id: "MVS/26-27/11661", name: "Haier CCR", transporter: "DP WORLD", edd: "22 Aug 2026", reason: "Delayed – Route Diversion", type: "Vendor" },
-      { id: "MVS/26-27/11747", name: "Loom Solar Pvt Ltd", transporter: "RIVIGO", edd: "26 Aug 2026", reason: "Delayed- Natural Calamity", type: "Vendor" }
-    ]
-  };
+    {
+      "name": "Carrier CTD",
+      "person": "Deepak Sharma",
+      "target": 74460.0,
+      "achieved": 85335.06,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 25101.0,
+          "achieved": 26498.34
+        },
+        "mid10": {
+          "target": 25010.0,
+          "achieved": 34742.62
+        },
+        "last10": {
+          "target": 24349.0,
+          "achieved": 23524.77
+        }
+      },
+      "pct": 115,
+      "avgDay": 3413,
+      "remaining": 0,
+      "daysNeeded": 0
+    },
+    {
+      "name": "Mitras Technocrafts Pvt Ltd-HR",
+      "person": "Deepak Sharma",
+      "target": 13501.0,
+      "achieved": 2211.71,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 3776.0,
+          "achieved": 501.98
+        },
+        "mid10": {
+          "target": 3861.0,
+          "achieved": 1313.73
+        },
+        "last10": {
+          "target": 5864.0,
+          "achieved": 396.0
+        }
+      },
+      "pct": 16,
+      "avgDay": 88,
+      "remaining": 11289.29,
+      "daysNeeded": 128.3
+    },
+    {
+      "name": "Paramount Surgimed Ltd",
+      "person": "Deepak Sharma",
+      "target": 12039.0,
+      "achieved": 329.97,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 722.0,
+          "achieved": null
+        },
+        "mid10": {
+          "target": 2366.0,
+          "achieved": 329.97
+        },
+        "last10": {
+          "target": 8951.0,
+          "achieved": null
+        }
+      },
+      "pct": 3,
+      "avgDay": 13,
+      "remaining": 11709.03,
+      "daysNeeded": 900.7
+    },
+    {
+      "name": "Haier CCR",
+      "person": "Deepak Sharma",
+      "target": 36298.0,
+      "achieved": 8267.23,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 18946.0,
+          "achieved": 2910.89
+        },
+        "mid10": {
+          "target": 8955.0,
+          "achieved": 2388.67
+        },
+        "last10": {
+          "target": 8397.0,
+          "achieved": 2927.03
+        }
+      },
+      "pct": 23,
+      "avgDay": 331,
+      "remaining": 28030.77,
+      "daysNeeded": 84.7
+    },
+    {
+      "name": "Bombax",
+      "person": "Sangeet Dhasmana",
+      "target": 97357.0,
+      "achieved": 79884.77,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 30657.0,
+          "achieved": 29217.84
+        },
+        "mid10": {
+          "target": 35146.0,
+          "achieved": 19763.48
+        },
+        "last10": {
+          "target": 31554.0,
+          "achieved": 30691.51
+        }
+      },
+      "pct": 82,
+      "avgDay": 3195,
+      "remaining": 17472.229999999996,
+      "daysNeeded": 5.5
+    },
+    {
+      "name": "Kumar Services",
+      "person": "Deepak Sharma",
+      "target": 13725.0,
+      "achieved": 13763.6,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 4345.0,
+          "achieved": 128.0
+        },
+        "mid10": {
+          "target": 5022.0,
+          "achieved": 5049.14
+        },
+        "last10": {
+          "target": 4358.0,
+          "achieved": 7307.49
+        }
+      },
+      "pct": 100,
+      "avgDay": 551,
+      "remaining": 0,
+      "daysNeeded": 0
+    },
+    {
+      "name": "Edusoft Healthcare Ltd",
+      "person": "Deepak Sharma",
+      "target": 3631.0,
+      "achieved": 0.0,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 2905.0,
+          "achieved": null
+        },
+        "mid10": {
+          "target": 726.0,
+          "achieved": null
+        },
+        "last10": {
+          "target": 0.0,
+          "achieved": null
+        }
+      },
+      "pct": 0,
+      "avgDay": 0,
+      "remaining": 3631.0,
+      "daysNeeded": 999
+    },
+    {
+      "name": "Oneiric Appliances Pvt Ltd",
+      "person": "Deepak Sharma",
+      "target": 15232.0,
+      "achieved": 8256.55,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 7019.0,
+          "achieved": 564.01
+        },
+        "mid10": {
+          "target": 3241.0,
+          "achieved": 4110.89
+        },
+        "last10": {
+          "target": 4972.0,
+          "achieved": 3581.65
+        }
+      },
+      "pct": 54,
+      "avgDay": 330,
+      "remaining": 6975.450000000001,
+      "daysNeeded": 21.1
+    },
+    {
+      "name": "Vaidrishi Laboratories Pvt Ltd",
+      "person": "Sangeet Dhasmana",
+      "target": 2357.0,
+      "achieved": 2361.51,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 534.0,
+          "achieved": 1015.3
+        },
+        "mid10": {
+          "target": 691.0,
+          "achieved": 422.01
+        },
+        "last10": {
+          "target": 1132.0,
+          "achieved": 924.2
+        }
+      },
+      "pct": 100,
+      "avgDay": 94,
+      "remaining": 0,
+      "daysNeeded": 0
+    },
+    {
+      "name": "Sukuga Technologies Pvt Ltd",
+      "person": "Deepak Sharma",
+      "target": 10142.0,
+      "achieved": 11469.4,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 1797.0,
+          "achieved": 1586.86
+        },
+        "mid10": {
+          "target": 3759.0,
+          "achieved": 1564.06
+        },
+        "last10": {
+          "target": 4586.0,
+          "achieved": 8318.48
+        }
+      },
+      "pct": 113,
+      "avgDay": 459,
+      "remaining": 0,
+      "daysNeeded": 0
+    },
+    {
+      "name": "Cosmos Pumps Pvt Ltd",
+      "person": "Deepak Sharma",
+      "target": 11398.0,
+      "achieved": 8565.98,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 4689.0,
+          "achieved": 4325.0
+        },
+        "mid10": {
+          "target": 3344.0,
+          "achieved": 1195.98
+        },
+        "last10": {
+          "target": 3365.0,
+          "achieved": 3045.0
+        }
+      },
+      "pct": 75,
+      "avgDay": 343,
+      "remaining": 2832.0200000000004,
+      "daysNeeded": 8.3
+    },
+    {
+      "name": "Loom Solar Pvt Ltd",
+      "person": "Deepak Sharma",
+      "target": 14458.0,
+      "achieved": 12475.0,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 3075.0,
+          "achieved": 4035.0
+        },
+        "mid10": {
+          "target": 5637.0,
+          "achieved": 7190.0
+        },
+        "last10": {
+          "target": 5746.0,
+          "achieved": 1350.0
+        }
+      },
+      "pct": 86,
+      "avgDay": 499,
+      "remaining": 1983.0,
+      "daysNeeded": 4.0
+    },
+    {
+      "name": "Medical Science",
+      "person": "Sangeet Dhasmana",
+      "target": 6013.75,
+      "achieved": 6907.05,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 0.0,
+          "achieved": 2735.02
+        },
+        "mid10": {
+          "target": 1324.48,
+          "achieved": 526.0
+        },
+        "last10": {
+          "target": 4689.52,
+          "achieved": 3645.4
+        }
+      },
+      "pct": 115,
+      "avgDay": 276,
+      "remaining": 0,
+      "daysNeeded": 0
+    },
+    {
+      "name": "Epson",
+      "person": "Sangeet Dhasmana",
+      "target": 3000.0,
+      "achieved": 2125.8,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 1444.0,
+          "achieved": 290.0
+        },
+        "mid10": {
+          "target": 1148.0,
+          "achieved": 1797.8
+        },
+        "last10": {
+          "target": 408.0,
+          "achieved": 38.0
+        }
+      },
+      "pct": 71,
+      "avgDay": 85,
+      "remaining": 874.1999999999998,
+      "daysNeeded": 10.3
+    },
+    {
+      "name": "Conficore",
+      "person": "Sangeet Dhasmana",
+      "target": 5000.0,
+      "achieved": 2158.97,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 5000.0,
+          "achieved": 1893.0
+        },
+        "mid10": {
+          "target": 0.0,
+          "achieved": null
+        },
+        "last10": {
+          "target": 0.0,
+          "achieved": 265.97
+        }
+      },
+      "pct": 43,
+      "avgDay": 86,
+      "remaining": 2841.03,
+      "daysNeeded": 33.0
+    },
+    {
+      "name": "HERCULES NUTRA",
+      "person": "Sangeet Dhasmana",
+      "target": 10000.0,
+      "achieved": 1343.22,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 3333.33,
+          "achieved": null
+        },
+        "mid10": {
+          "target": 3333.0,
+          "achieved": 342.93
+        },
+        "last10": {
+          "target": 3334.0,
+          "achieved": 1000.29
+        }
+      },
+      "pct": 13,
+      "avgDay": 54,
+      "remaining": 8656.78,
+      "daysNeeded": 160.3
+    },
+    {
+      "name": "MEDGLOBE THERAPEUTICS",
+      "person": "Sangeet Dhasmana",
+      "target": 10000.0,
+      "achieved": 1315.98,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 3333.33,
+          "achieved": null
+        },
+        "mid10": {
+          "target": 3333.0,
+          "achieved": 420.8
+        },
+        "last10": {
+          "target": 3334.0,
+          "achieved": 895.18
+        }
+      },
+      "pct": 13,
+      "avgDay": 53,
+      "remaining": 8684.02,
+      "daysNeeded": 163.8
+    },
+    {
+      "name": "Khusbhu Enterprises",
+      "person": "Deepak Sharma",
+      "target": 0.0,
+      "achieved": 251.0,
+      "activeDays": 25,
+      "periods": {
+        "first10": {
+          "target": 0.0,
+          "achieved": null
+        },
+        "mid10": {
+          "target": 0.0,
+          "achieved": null
+        },
+        "last10": {
+          "target": 0.0,
+          "achieved": 251.0
+        }
+      },
+      "pct": 999,
+      "avgDay": 10,
+      "remaining": 0,
+      "daysNeeded": 0
+    }
+  ],
+  "openData": [
+    {
+      "name": "Carrier Refrigeration",
+      "count": 304
+    },
+    {
+      "name": "Bombax",
+      "count": 252
+    },
+    {
+      "name": "Carrier CTD",
+      "count": 79
+    },
+    {
+      "name": "Sukuga Technologies Pvt Ltd",
+      "count": 18
+    },
+    {
+      "name": "Haier CCR",
+      "count": 13
+    },
+    {
+      "name": "Medical Science",
+      "count": 8
+    },
+    {
+      "name": "Oneiric Appliances Pvt Ltd",
+      "count": 7
+    },
+    {
+      "name": "Kumar Services",
+      "count": 7
+    },
+    {
+      "name": "Loom Solar Pvt Ltd",
+      "count": 6
+    },
+    {
+      "name": "Vaidrishi Laboratories Pvt Ltd",
+      "count": 4
+    },
+    {
+      "name": "HERCULES NUTRA",
+      "count": 3
+    },
+    {
+      "name": "Cosmos Pumps Pvt Ltd",
+      "count": 3
+    },
+    {
+      "name": "MEDGLOBE THERAPEUTICS",
+      "count": 3
+    },
+    {
+      "name": "Epson",
+      "count": 3
+    },
+    {
+      "name": "Mitras Technocrafts Pvt Ltd-HR",
+      "count": 2
+    },
+    {
+      "name": "Conficore",
+      "count": 1
+    },
+    {
+      "name": "Khusbhu Enterprises",
+      "count": 1
+    }
+  ],
+  "eddData": [
+    {
+      "name": "Carrier Refrigeration",
+      "count": 117
+    },
+    {
+      "name": "Bombax",
+      "count": 60
+    },
+    {
+      "name": "Haier CCR",
+      "count": 10
+    },
+    {
+      "name": "Medical Science",
+      "count": 7
+    },
+    {
+      "name": "Carrier CTD",
+      "count": 7
+    },
+    {
+      "name": "Oneiric Appliances Pvt Ltd",
+      "count": 6
+    },
+    {
+      "name": "Kumar Services",
+      "count": 6
+    },
+    {
+      "name": "Loom Solar Pvt Ltd",
+      "count": 5
+    },
+    {
+      "name": "Epson",
+      "count": 5
+    },
+    {
+      "name": "HERCULES NUTRA",
+      "count": 3
+    },
+    {
+      "name": "Mitras Technocrafts Pvt Ltd-HR",
+      "count": 2
+    },
+    {
+      "name": "Cosmos Pumps Pvt Ltd",
+      "count": 2
+    },
+    {
+      "name": "MEDGLOBE THERAPEUTICS",
+      "count": 2
+    },
+    {
+      "name": "Conficore",
+      "count": 1
+    },
+    {
+      "name": "Vaidrishi Laboratories Pvt Ltd",
+      "count": 1
+    }
+  ],
+  "dueData": [
+    {
+      "name": "Carrier Refrigeration",
+      "count": 35
+    },
+    {
+      "name": "Bombax",
+      "count": 34
+    },
+    {
+      "name": "Carrier CTD",
+      "count": 25
+    },
+    {
+      "name": "Haier CCR",
+      "count": 1
+    },
+    {
+      "name": "Medical Science",
+      "count": 1
+    },
+    {
+      "name": "Vaidrishi Laboratories Pvt Ltd",
+      "count": 1
+    },
+    {
+      "name": "Sukuga Technologies Pvt Ltd",
+      "count": 1
+    },
+    {
+      "name": "Kumar Services",
+      "count": 1
+    }
+  ],
+  "bookedData": [
+    {
+      "name": "Carrier Refrigeration",
+      "count": 45
+    },
+    {
+      "name": "Khusbhu Enterprises",
+      "count": 1
+    }
+  ],
+  "dailyTonnageData": [
+    {
+      "name": "Carrier Refrigeration",
+      "kg": 22147.0
+    },
+    {
+      "name": "Khusbhu Enterprises",
+      "kg": 251.0
+    }
+  ],
+  "eddDetail": [
+    {
+      "id": "MVS/26-27/1304",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "28 Apr 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/2679",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "17 May 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/2680",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "19 May 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/2684",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "17 May 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/2694",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "19 May 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/2698",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "19 May 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/2900",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "22 May 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/3032",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "23 May 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/4080",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "02 Jun 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/6675",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "06 Jul 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/7560",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "17 Jul 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/9134",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "31 Jul 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/9141",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "29 Jul 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/9627",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "01 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/9769",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "05 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/9798",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "03 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10006",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "05 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10082",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "06 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10242",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "08 Aug 2026",
+      "reason": "Partial Shipment Delivery Remaining 1 Box Intransi...",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10267",
+      "name": "Mitras Technocrafts Pvt Ltd-HR",
+      "transporter": "EKART",
+      "edd": "04 Aug 2026",
+      "reason": "Hold by consignor due to address issue",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10337",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "08 Aug 2026",
+      "reason": "Spotlight; Operational Challenges Due to Onam Traf...",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10509",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "11 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10513",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "11 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10533",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "11 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10635",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "11 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10660",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "12 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10827",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "13 Aug 2026",
+      "reason": "On Hold – DEPS",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10833",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "13 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10834",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "13 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10904",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "12 Aug 2026",
+      "reason": "Connection affected due to Kawad Yatra",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10909",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "09 Aug 2026",
+      "reason": "Refused by consignee",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10932",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "12 Aug 2026",
+      "reason": "Delayed - Need Contact No.",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10938",
+      "name": "Oneiric Appliances Pvt Ltd",
+      "transporter": "DP WORLD",
+      "edd": "11 Aug 2026",
+      "reason": "On Hold – Refused By Consignee",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10984",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "11 Aug 2026",
+      "reason": "Connection Delayed from Gurugram",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/10986",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "13 Aug 2026",
+      "reason": "Connection affected due to Kawad Yatra",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11053",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "15 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11080",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "14 Aug 2026",
+      "reason": "Connection affected due to Kawad Yatra",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11207",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "16 Aug 2026",
+      "reason": "Address Not Reachable/ Traceable",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11282",
+      "name": "Oneiric Appliances Pvt Ltd",
+      "transporter": "GATI",
+      "edd": "17 Aug 2026",
+      "reason": "Delayed - Interchange shipment",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11293",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "19 Aug 2026",
+      "reason": "Delayed – Operational Backlog",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11302",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "17 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11303",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "17 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11386",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "17 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11429",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "17 Aug 2026",
+      "reason": "address issue",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11512",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "21 Aug 2026",
+      "reason": "Delayed – Address Verification Required",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11560",
+      "name": "Loom Solar Pvt Ltd",
+      "transporter": "DP World",
+      "edd": "23 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11579",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "19 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11631",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "24 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11632",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "23 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11661",
+      "name": "Haier CCR",
+      "transporter": "DP WORLD",
+      "edd": "22 Aug 2026",
+      "reason": "Delayed – Route Diversion",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11686",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "25 Aug 2026",
+      "reason": "Customer Permises is closed",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11689",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "25 Aug 2026",
+      "reason": "Customer Permises is closed",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11692",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "24 Aug 2026",
+      "reason": "Mathadi charges issue",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11707",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "22 Aug 2026",
+      "reason": "DEPS - ON HOLD",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11712",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "21 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11747",
+      "name": "Loom Solar Pvt Ltd",
+      "transporter": "RIVIGO",
+      "edd": "26 Aug 2026",
+      "reason": "Delayed- Natural Calamity",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11771",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "26 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11775",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "26 Aug 2026",
+      "reason": "Delayed – Operational Backlog",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11777",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "23 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11785",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "25 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11804",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "26 Aug 2026",
+      "reason": "Customer Permises is closed",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11822",
+      "name": "Loom Solar Pvt Ltd",
+      "transporter": "RIVIGO",
+      "edd": "25 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11856",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11860",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed – Operational Backlog",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11861",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11873",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "26 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11879",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "22 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11890",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "25 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11891",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "23 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11904",
+      "name": "HERCULES NUTRA",
+      "transporter": "DP WORLD",
+      "edd": "24 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11930",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11941",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "27 Aug 2026",
+      "reason": "Required Invoice Copy",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11942",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "26 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11976",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "27 Aug 2026",
+      "reason": "Spotlight; Operational Challenges Due to Onam",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11989",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "26 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11991",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "26 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/11995",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "26 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12007",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "26 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12010",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Spotlight; Operational Challenges Due to Onam",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12024",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Delayed – Operational Backlog",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12035",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12043",
+      "name": "Medical Science",
+      "transporter": "DP WORLD",
+      "edd": "24 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12044",
+      "name": "Medical Science",
+      "transporter": "DP WORLD",
+      "edd": "27 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12051",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "24 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12055",
+      "name": "Cosmos Pumps Pvt Ltd",
+      "transporter": "EKART",
+      "edd": "26 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12068",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12069",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12072",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12074",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12079",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12080",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed-Required Contact/ Mall Delivery",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12086",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12092",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12093",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12101",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12103",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12111",
+      "name": "Carrier CTD",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12112",
+      "name": "Carrier CTD",
+      "transporter": "DP WORLD",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12115",
+      "name": "Carrier CTD",
+      "transporter": "DP WORLD",
+      "edd": "25 Aug 2026",
+      "reason": "Delayed- Invalid Contact Details",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12123",
+      "name": "Cosmos Pumps Pvt Ltd",
+      "transporter": "DP WORLD",
+      "edd": "27 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12142",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Spotlight; Operational Challenges Due to Onam",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12143",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12153",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12168",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12175",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "27 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12189",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12206",
+      "name": "Mitras Technocrafts Pvt Ltd-HR",
+      "transporter": "DP WORLD",
+      "edd": "27 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12207",
+      "name": "Oneiric Appliances Pvt Ltd",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12212",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12213",
+      "name": "Loom Solar Pvt Ltd",
+      "transporter": "Gati",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12216",
+      "name": "Medical Science",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12217",
+      "name": "Medical Science",
+      "transporter": "DP WORLD",
+      "edd": "26 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12221",
+      "name": "Medical Science",
+      "transporter": "DP WORLD",
+      "edd": "26 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12222",
+      "name": "Medical Science",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12225",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12226",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12228",
+      "name": "MEDGLOBE THERAPEUTICS",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12230",
+      "name": "HERCULES NUTRA",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12231",
+      "name": "Conficore",
+      "transporter": "DP WORLD",
+      "edd": "27 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12233",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12246",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Delayed- Mall Delivery Timing Restriction",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12254",
+      "name": "Kumar Services",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12258",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12262",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12267",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12279",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Spotlight : Heavy rain in Delhi & NCR",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12280",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12283",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12284",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12287",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12290",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12291",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12292",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12293",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12294",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12298",
+      "name": "Carrier CTD",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12299",
+      "name": "Carrier CTD",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12304",
+      "name": "Carrier CTD",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12308",
+      "name": "Kumar Services",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12310",
+      "name": "Kumar Services",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12311",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12315",
+      "name": "Carrier Refrigeration",
+      "transporter": "OM LOGISTICS",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12322",
+      "name": "Epson",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12324",
+      "name": "Epson",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Connection Delayed",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12327",
+      "name": "Epson",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12330",
+      "name": "Epson",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12332",
+      "name": "Epson",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12333",
+      "name": "Haier CCR",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12347",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Required Contact No.",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12351",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12355",
+      "name": "Bombax",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12361",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12363",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12364",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12365",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12368",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12369",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12372",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12373",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12374",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12379",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12380",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12381",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12383",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12384",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12388",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12392",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12393",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12394",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12396",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Delayed in Hub Transit",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12397",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12398",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12407",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12408",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12409",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12410",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12420",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12457",
+      "name": "Haier CCR",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12458",
+      "name": "Haier CCR",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Delayed - Address issue",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12480",
+      "name": "Oneiric Appliances Pvt Ltd",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12481",
+      "name": "Oneiric Appliances Pvt Ltd",
+      "transporter": "EKART",
+      "edd": "27 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12482",
+      "name": "Haier CCR",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12484",
+      "name": "Haier CCR",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12487",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12489",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12490",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12491",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12494",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12502",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12503",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12504",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12506",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12513",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12515",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12516",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12518",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12519",
+      "name": "Carrier Refrigeration",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12520",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12521",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12533",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12534",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12539",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12540",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Highway Backloged",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12545",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12546",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12588",
+      "name": "Carrier CTD",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Address issue",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12601",
+      "name": "Kumar Services",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12602",
+      "name": "Kumar Services",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12603",
+      "name": "Kumar Services",
+      "transporter": "DP WORLD",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12604",
+      "name": "Loom Solar Pvt Ltd",
+      "transporter": "NULL",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12606",
+      "name": "Haier CCR",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12618",
+      "name": "HERCULES NUTRA",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12619",
+      "name": "MEDGLOBE THERAPEUTICS",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12620",
+      "name": "Medical Science",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12628",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12629",
+      "name": "Bombax",
+      "transporter": "DP WORLD",
+      "edd": "28 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12709",
+      "name": "Vaidrishi Laboratories Pvt Ltd",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12710",
+      "name": "Haier CCR",
+      "transporter": "DP WORLD",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12716",
+      "name": "Haier CCR",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12718",
+      "name": "Haier CCR",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12724",
+      "name": "Oneiric Appliances Pvt Ltd",
+      "transporter": "GATI",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12743",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12745",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12746",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12757",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12761",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12764",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12765",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12767",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12768",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "30 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12770",
+      "name": "Carrier Refrigeration",
+      "transporter": "EKART",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12773",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12775",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    },
+    {
+      "id": "MVS/26-27/12785",
+      "name": "Carrier Refrigeration",
+      "transporter": "XP INDIA",
+      "edd": "29 Aug 2026",
+      "reason": "Transit Delay",
+      "type": "Vendor"
+    }
+  ],
+  "delayAnalytics": {
+    "totalDelayed": 234,
+    "reasonCounts": {
+      "Transit Delay": 131,
+      "Delayed- Mall Delivery Timing Restriction": 35,
+      "Spotlight : Heavy rain in Delhi & NCR": 11,
+      "Delayed-Required Contact/ Mall Delivery": 11,
+      "Delayed in Hub Transit": 10,
+      "Delayed – Operational Backlog": 4,
+      "Connection affected due to Kawad Yatra": 3,
+      "Customer Permises is closed": 3,
+      "Spotlight; Operational Challenges Due to Onam": 3,
+      "Partial Shipment Delivery Remaining 1 Box Intransi...": 1,
+      "Hold by consignor due to address issue": 1,
+      "Spotlight; Operational Challenges Due to Onam Traf...": 1,
+      "On Hold – DEPS": 1,
+      "Refused by consignee": 1,
+      "Delayed - Need Contact No.": 1,
+      "On Hold – Refused By Consignee": 1,
+      "Connection Delayed from Gurugram": 1,
+      "Address Not Reachable/ Traceable": 1,
+      "Delayed - Interchange shipment": 1,
+      "address issue": 1
+    },
+    "carrierDelays": {
+      "EKART": 87,
+      "XP INDIA": 74,
+      "DP WORLD": 65,
+      "GATI": 2,
+      "RIVIGO": 2,
+      "DP World": 1,
+      "Gati": 1,
+      "OM LOGISTICS": 1,
+      "NULL": 1
+    },
+    "categories": {
+      "carrier": 192,
+      "external": 19,
+      "customer": 23
+    },
+    "customerVendor": {
+      "Vendor": 234
+    }
+  }
+};
   renderDashboard(fallback);
 }
 
