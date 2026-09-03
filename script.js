@@ -1,25 +1,20 @@
 /* ═══════════════════════════════════════════════════════════════
-   MVIKAS LOGISTICS — Executive Command Dashboard Engine
-   Pure Deep Black & Precision Electric Orange HUD
+   MVIKAS LOGISTICS — Organic Pebble Tablet Studio Engine
+   Inspired by Dribbble Ron Design Neumorphic / Soft Minimalist UI
    ═══════════════════════════════════════════════════════════════ */
 
-// Palette: Deep Jet Black + Precision Electric Orange
+// Palette: Warm Stone, Soft Porcelain, Electric Orange, Amber Yellow & Slate
 const C = {
   orange: '#f58220',
-  orangeBright: '#ff9838',
-  orangeDim: '#c96510',
-  bg: '#090909',
-  s1: '#101010',
-  s2: '#161616',
-  s3: '#1c1c1c',
-  s4: '#242424',
-  border: '#252525',
-  borderStrong: '#333333',
-  text: '#ffffff',
-  textHigh: '#f0f0f0',
-  textMed: '#a0a0a0',
-  textMuted: '#666666',
-  grid: '#181818'
+  orangeSoft: 'rgba(245, 130, 32, 0.15)',
+  yellow: '#f5be18',
+  slate: '#25272b',
+  slateSoft: '#e5e3dc',
+  stone: '#d2cfc4',
+  textDark: '#1e2024',
+  textMuted: '#7b7e87',
+  cardBg: '#ffffff',
+  grid: 'rgba(0, 0, 0, 0.05)'
 };
 const orangeA = (a) => `rgba(245, 130, 32, ${a})`;
 
@@ -40,20 +35,20 @@ function safeChart(ctx, config) {
   }
 }
 
-// Chart defaults (Deep Black & Precision Orange)
+// Chart defaults (Clean Soft Minimalist Palette)
 if (typeof Chart !== 'undefined') {
   const CD = Chart.defaults;
-  CD.color = C.textMed;
-  CD.font.family = 'Inter, -apple-system, sans-serif';
+  CD.color = C.textMuted;
+  CD.font.family = 'Plus Jakarta Sans, -apple-system, sans-serif';
   CD.font.size = 11;
-  CD.plugins.tooltip.backgroundColor = C.s3;
-  CD.plugins.tooltip.borderColor = C.borderStrong;
+  CD.plugins.tooltip.backgroundColor = C.slate;
+  CD.plugins.tooltip.borderColor = 'rgba(255, 255, 255, 0.1)';
   CD.plugins.tooltip.borderWidth = 1;
   CD.plugins.tooltip.padding = 10;
-  CD.plugins.tooltip.cornerRadius = 6;
+  CD.plugins.tooltip.cornerRadius = 8;
   CD.plugins.tooltip.titleColor = C.orange;
   CD.plugins.tooltip.titleFont = { size: 11, weight: '700' };
-  CD.plugins.tooltip.bodyColor = C.text;
+  CD.plugins.tooltip.bodyColor = '#ffffff';
   CD.plugins.tooltip.bodyFont = { size: 12, weight: '500' };
   CD.plugins.tooltip.displayColors = false;
   CD.scale.grid.color = C.grid;
@@ -73,26 +68,13 @@ function destroyCharts() {
   chartInstances = {};
 }
 
-// Counter Animation
-function animateCounters() {
-  document.querySelectorAll('.counter').forEach(el => {
-    const t = +el.dataset.target, dec = +(el.dataset.decimals || 0), dur = 1400, st = performance.now();
-    (function tick(now) {
-      const p = Math.min((now - st) / dur, 1);
-      const v = t * (1 - Math.pow(1 - p, 3));
-      el.textContent = dec > 0 ? v.toFixed(dec) : Math.round(v).toLocaleString('en-IN');
-      if (p < 1) requestAnimationFrame(tick);
-    })(st);
-  });
-}
-
-// Tab Switching (Only the 4 core operational panels)
+// Tab Switching (4 core operational panels)
 function switchTab(id, btn) {
-  document.querySelectorAll('.nav-tab').forEach(t => {
+  document.querySelectorAll('.pill-tab').forEach(t => {
     t.classList.remove('active');
     t.setAttribute('aria-selected', 'false');
   });
-  document.querySelectorAll('.hud-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.studio-panel').forEach(p => p.classList.remove('active'));
 
   const targetPanel = $('tab-' + id);
   if (targetPanel) targetPanel.classList.add('active');
@@ -120,7 +102,7 @@ window.goToEddDetail = goToEddDetail;
 // Formatters
 const fR = v => '₹' + (v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 const fK = v => (v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
-const CF = { size: 11, weight: '500' };
+const CF = { size: 11, weight: '600' };
 
 // Global Data State
 let APP_DATA = null;
@@ -176,7 +158,7 @@ function renderDashboard(data) {
     c.daysNeeded = c.avgDay > 0 && c.remaining > 0 ? +(c.remaining / c.avgDay).toFixed(1) : (c.remaining === 0 ? 0 : 999);
   });
 
-  // Header Telemetry
+  // Header Report Date & Elapsed Days
   if ($('header-report-date') && data.metadata?.reportDate) {
     $('header-report-date').textContent = data.metadata.reportDate;
   }
@@ -184,22 +166,20 @@ function renderDashboard(data) {
     $('header-elapsed-days').textContent = `Day ${activeDays}/${daysInMonth}`;
   }
 
-  // Populate 9 Core KPI HUD Cards
+  // Populate Executive Overview Telemetry
   if ($('kpi-open')) $('kpi-open').textContent = openTotal.toLocaleString('en-IN');
   if ($('kpi-edd')) $('kpi-edd').textContent = eddTotal.toLocaleString('en-IN');
-  if ($('kpi-edd-pct')) $('kpi-edd-pct').textContent = Math.round(eddTotal / openTotal * 100) + '% of open pipeline';
+  if ($('kpi-edd-pct')) $('kpi-edd-pct').textContent = Math.round(eddTotal / openTotal * 100) + '% of open';
   if ($('kpi-due')) $('kpi-due').textContent = dueTotal.toLocaleString('en-IN');
   if ($('kpi-booked')) $('kpi-booked').textContent = bookedTotal.toLocaleString('en-IN');
-  if ($('kpi-daily-ton')) $('kpi-daily-ton').innerHTML = dailyTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' <span style="font-size:.72rem;font-weight:600;color:' + C.textMuted + '">kg</span>';
-  if ($('kpi-month-ton')) $('kpi-month-ton').innerHTML = monthlyTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' <span style="font-size:.72rem;font-weight:600;color:' + C.textMuted + '">kg</span>';
-  if ($('kpi-daily-avg')) $('kpi-daily-avg').innerHTML = Math.round(dailyAverage).toLocaleString('en-IN') + ' <span style="font-size:.72rem;font-weight:600;color:' + C.textMuted + '">kg/day</span>';
-  if ($('kpi-target-money')) $('kpi-target-money').textContent = fR(totalTargetMoney);
-  if ($('kpi-sales-money')) $('kpi-sales-money').textContent = fR(totalSalesMoney);
+  if ($('kpi-daily-avg')) $('kpi-daily-avg').innerHTML = Math.round(dailyAverage).toLocaleString('en-IN') + ' <small>kg/day</small>';
+  if ($('kpi-month-ton')) $('kpi-month-ton').innerHTML = (monthlyTotal / 1000).toFixed(1) + 'k <small>kg</small>';
+  if ($('kpi-sales-money')) $('kpi-sales-money').innerHTML = '₹' + (totalSalesMoney / 100000).toFixed(2) + 'L <small>/ ' + '₹' + (totalTargetMoney / 100000).toFixed(2) + 'L</small>';
 
   // Tab Badge
   if ($('tab-edd-badge')) $('tab-edd-badge').textContent = eddTotal;
 
-  // Status Strip & Donut Legends
+  // Milestone Flow Strips
   ['strip-edd', 'dl-edd'].forEach(id => { const e = $(id); if (e) e.textContent = eddTotal });
   ['strip-transit', 'dl-transit'].forEach(id => { const e = $(id); if (e) e.textContent = openTotal - eddTotal });
   ['strip-due', 'dl-due'].forEach(id => { const e = $(id); if (e) e.textContent = dueTotal });
@@ -215,12 +195,12 @@ function renderDashboard(data) {
       const pct = d.count > 0 ? Math.round(ec / d.count * 100) : 0;
       const risk = pct >= 70 ? ['Critical', 'delayed'] : pct >= 40 ? ['High', 'delayed'] : pct >= 20 ? ['Medium', 'open'] : ['Low', 'due'];
       otb.innerHTML += `<tr>
-        <td style="color:${C.textMuted};font-family:${C.fontMono || 'monospace'}">${String(i + 1).padStart(2, '0')}</td>
+        <td style="color:${C.textMuted};font-family:monospace;font-weight:600">${String(i + 1).padStart(2, '0')}</td>
         <td><strong>${d.name}</strong></td>
         <td>${d.count}</td>
         <td style="color:${C.orange};font-weight:700">${ec}</td>
-        <td style="color:${C.textHigh};font-weight:500">${dc}</td>
-        <td style="color:${pct >= 50 ? C.orange : C.textHigh};font-weight:700">${pct}%</td>
+        <td style="color:${C.textDark};font-weight:600">${dc}</td>
+        <td style="color:${pct >= 50 ? C.orange : C.textDark};font-weight:700">${pct}%</td>
         <td><span class="badge ${risk[1]}">${risk[0]}</span></td>
       </tr>`;
     });
@@ -233,13 +213,13 @@ function renderDashboard(data) {
       labels: ['EDD Crossed', 'In Transit', 'Due Tomorrow', 'Booked'],
       datasets: [{
         data: [eddTotal, openTotal - eddTotal, dueTotal, bookedTotal],
-        backgroundColor: [C.orange, '#888888', '#555555', '#222222'],
-        borderWidth: 2, borderColor: C.s1, hoverOffset: 8
+        backgroundColor: [C.orange, C.slate, C.yellow, C.stone],
+        borderWidth: 3, borderColor: '#ffffff', hoverOffset: 8
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '72%',
-      animation: { animateRotate: true, duration: 1100, easing: 'easeOutQuart' },
+      animation: { animateRotate: true, duration: 1000, easing: 'easeOutQuart' },
       plugins: { legend: { display: false } }
     }
   });
@@ -248,7 +228,7 @@ function renderDashboard(data) {
     type: 'bar',
     data: {
       labels: eddData.map(d => d.name),
-      datasets: [{ label: 'EDD Crossed', data: eddData.map(d => d.count), backgroundColor: C.orange, borderRadius: 4 }]
+      datasets: [{ label: 'EDD Crossed', data: eddData.map(d => d.count), backgroundColor: C.orange, borderRadius: 6 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 1000 },
@@ -259,7 +239,7 @@ function renderDashboard(data) {
 
   chartInstances.dueTmrChart = safeChart($('dueTmrChart'), {
     type: 'bar',
-    data: { labels: dueData.map(d => d.name), datasets: [{ label: 'Due', data: dueData.map(d => d.count), backgroundColor: orangeA(.6), borderRadius: 4 }] },
+    data: { labels: dueData.map(d => d.name), datasets: [{ label: 'Due', data: dueData.map(d => d.count), backgroundColor: C.yellow, borderRadius: 6 }] },
     options: {
       responsive: true, maintainAspectRatio: false, animation: { duration: 1000 },
       plugins: { legend: { display: false } },
@@ -269,7 +249,7 @@ function renderDashboard(data) {
 
   chartInstances.bookedChart = safeChart($('bookedChart'), {
     type: 'bar',
-    data: { labels: bookedData.map(d => d.name), datasets: [{ label: 'Booked', data: bookedData.map(d => d.count), backgroundColor: '#777777', borderRadius: 4 }] },
+    data: { labels: bookedData.map(d => d.name), datasets: [{ label: 'Booked', data: bookedData.map(d => d.count), backgroundColor: C.slate, borderRadius: 6 }] },
     options: {
       responsive: true, maintainAspectRatio: false, animation: { duration: 1000 },
       plugins: { legend: { display: false } },
@@ -289,8 +269,6 @@ function renderDashboard(data) {
   // EDD Section
   populateEddFilterOptions(eddDetail);
   renderEddRows(eddDetail);
-
-  animateCounters();
 }
 
 // Forecast Rendering
@@ -306,14 +284,14 @@ function renderForecast(targetMoney, salesMoney, predictedSales, predictedPct, a
 
   if (badge && vt) {
     if (will) {
-      badge.textContent = 'ON TRACK'; badge.className = 'f-badge good';
-      vt.textContent = `Projected ${Math.round(predictedPct)}% — surplus ${fR(predictedSales - targetMoney)}.`;
+      badge.textContent = 'ON TRACK'; badge.className = 'pill-tag good';
+      vt.textContent = `Projected ${Math.round(predictedPct)}% — surplus ${fR(predictedSales - targetMoney)}`;
     } else if (border) {
-      badge.textContent = 'BORDERLINE'; badge.className = 'f-badge warn';
-      vt.textContent = `Projected ${Math.round(predictedPct)}% — shortfall ${fR(targetMoney - predictedSales)}.`;
+      badge.textContent = 'BORDERLINE'; badge.className = 'pill-tag warn';
+      vt.textContent = `Projected ${Math.round(predictedPct)}% — shortfall ${fR(targetMoney - predictedSales)}`;
     } else {
-      badge.textContent = 'AT RISK'; badge.className = 'f-badge bad';
-      vt.textContent = `Projected ${Math.round(predictedPct)}% — shortfall ${fR(targetMoney - predictedSales)}.`;
+      badge.textContent = 'AT RISK'; badge.className = 'pill-tag bad';
+      vt.textContent = `Projected ${Math.round(predictedPct)}% — shortfall ${fR(targetMoney - predictedSales)}`;
     }
   }
 
@@ -321,7 +299,7 @@ function renderForecast(targetMoney, salesMoney, predictedSales, predictedPct, a
   if ($('forecast-bar-fill')) $('forecast-bar-fill').style.width = Math.min(predictedSales / max * 100, 100) + '%';
   if ($('forecast-bar-target-marker')) $('forecast-bar-target-marker').style.left = Math.min(targetMoney / max * 100, 100) + '%';
   if ($('forecast-bar-target-label')) $('forecast-bar-target-label').textContent = 'Target: ' + fR(targetMoney);
-  if ($('forecast-explain')) $('forecast-explain').innerHTML = `<strong style="color:${C.text}">Method:</strong> Predicted = (Sales ÷ ${activeDays} active days) × ${daysInMonth}. Straight-line projection.`;
+  if ($('forecast-explain')) $('forecast-explain').innerHTML = `<strong>Projection Logic:</strong> (Sales ÷ ${activeDays} active days) × ${daysInMonth} total days.`;
 }
 
 // Tonnage Period Logic
@@ -330,10 +308,10 @@ const PS = { full: 'Full Month', first10: 'First 10 Days', mid10: 'Mid 10 Days',
 let curPeriod = 'full';
 
 function bucketColor(pct) {
-  if (pct === null || pct === undefined) return C.textMuted;
+  if (pct === null || pct === undefined) return '#c2beb4';
   if (pct >= 80) return C.orange;
-  if (pct >= 50) return '#aaaaaa';
-  return '#666666';
+  if (pct >= 50) return C.yellow;
+  return '#949187';
 }
 
 function getPStats(c, p) {
@@ -369,7 +347,7 @@ function renderTonnageBars() {
     return pB - pA || (b.achieved || 0) - (a.achieved || 0);
   });
 
-  if (!wd.length) { el.innerHTML = '<div style="padding:24px;text-align:center;color:#666">No tonnage data for this period.</div>'; return; }
+  if (!wd.length) { el.innerHTML = '<div style="padding:24px;text-align:center;color:#888">No tonnage data for this period.</div>'; return; }
 
   el.innerHTML = wd.map(({ c, achieved, target }) => {
     const ht = target > 0, ha = achieved > 0;
@@ -396,7 +374,7 @@ function renderTonnageBars() {
 }
 
 const tl = $('tonnage-legend');
-if (tl) tl.innerHTML = [['0–50%', '#666666'], ['50–80%', '#aaaaaa'], ['80%+', C.orange]].map(([l, c]) => `<span><span class="legend-dot" style="background:${c}"></span>${l}</span>`).join('') + '<span><span class="badge open" style="margin-left:0;font-size:0.62rem">New</span> recently added</span>';
+if (tl) tl.innerHTML = [['0–50%', '#949187'], ['50–80%', C.yellow], ['80%+', C.orange]].map(([l, c]) => `<span><span class="legend-dot" style="background:${c}"></span>${l}</span>`).join('') + '<span><span class="badge open" style="margin-left:0;font-size:0.62rem">New</span> onboarded</span>';
 
 function renderTonnageCharts() {
   if (!APP_DATA) return;
@@ -409,13 +387,13 @@ function renderTonnageCharts() {
     data: {
       labels: top.map(r => r.name),
       datasets: [
-        { label: 'Target', data: top.map(r => r.target), backgroundColor: '#282828', borderRadius: 4 },
-        { label: 'Achieved', data: top.map(r => r.achieved), backgroundColor: C.orange, borderRadius: 4 }
+        { label: 'Target', data: top.map(r => r.target), backgroundColor: C.slate, borderRadius: 6 },
+        { label: 'Achieved', data: top.map(r => r.achieved), backgroundColor: C.orange, borderRadius: 6 }
       ]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 1000 },
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, font: CF, color: C.textMed } }, title: { display: true, text: 'Target vs Achieved — ' + PS[curPeriod], font: { size: 11, weight: '600' }, color: C.textMuted, padding: { bottom: 16 } } },
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, font: CF, color: C.textDark } }, title: { display: true, text: 'Target vs Achieved — ' + PS[curPeriod], font: { size: 11, weight: '700' }, color: C.textMuted, padding: { bottom: 16 } } },
       scales: { x: { beginAtZero: true, ticks: { callback: v => (v / 1000).toFixed(0) + 'k', font: CF } }, y: { ticks: { font: CF }, grid: { display: false } } }
     }
   });
@@ -435,17 +413,17 @@ function renderKamSummary() {
   });
   const kl = Object.values(km).sort((a, b) => b.ta - a.ta);
   if (!kl.length) {
-    body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#666;padding:24px">No KAM data.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888;padding:24px">No KAM data.</td></tr>`;
     return;
   }
   body.innerHTML = kl.map(k => {
     const p = k.tt > 0 ? Math.round(k.ta / k.tt * 100) : null;
     const pc = p === null ? C.textMuted : bucketColor(p);
     return `<tr>
-      <td style="font-weight:600;color:${C.textHigh}">${k.person}</td>
+      <td style="font-weight:700;color:${C.textDark}">${k.person}</td>
       <td>${k.tt > 0 ? fK(k.tt) : '—'}</td>
-      <td style="color:${C.textPure}">${fK(k.ta)}</td>
-      <td style="color:${pc};font-weight:700">${p !== null ? p + '%' : '—'}</td>
+      <td style="color:${C.textDark};font-weight:600">${fK(k.ta)}</td>
+      <td style="color:${pc};font-weight:800">${p !== null ? p + '%' : '—'}</td>
     </tr>`;
   }).join('');
 
@@ -464,19 +442,19 @@ function renderDailyTable(clients) {
     dtb.innerHTML = '';
     clients.filter(c => c.achieved > 0).forEach(c => {
       const pct = c.target > 0 ? Math.round(c.achieved / c.target * 100) + '%' : '—';
-      const pc = c.target > 0 ? (c.achieved >= c.target ? C.orange : C.textHigh) : C.textMuted;
+      const pc = c.target > 0 ? (c.achieved >= c.target ? C.orange : C.textDark) : C.textMuted;
       const rem = c.target > 0 ? Math.max(c.target - c.achieved, 0).toLocaleString('en-IN') : '—';
       const df = c.target > 0 && c.avgDay > 0 && c.remaining > 0 ? +(c.remaining / c.avgDay).toFixed(1) : (c.target > 0 && c.remaining === 0 ? '✓' : '—');
       dtb.innerHTML += `<tr>
-        <td style="font-weight:600;color:${C.textHigh}">${c.name}</td>
+        <td style="font-weight:700;color:${C.textDark}">${c.name}</td>
         <td style="font-size:0.75rem;color:${C.textMuted}">${c.person}</td>
         <td>${c.target > 0 ? c.target.toLocaleString('en-IN') : '—'}</td>
-        <td style="color:${C.textPure}">${c.achieved.toLocaleString('en-IN')}</td>
-        <td style="color:${pc};font-weight:700">${pct}</td>
+        <td style="color:${C.textDark};font-weight:700">${c.achieved.toLocaleString('en-IN')}</td>
+        <td style="color:${pc};font-weight:800">${pct}</td>
         <td>${c.activeDays}</td>
         <td>${c.avgDay.toLocaleString('en-IN')}</td>
-        <td style="color:${C.textMed}">${rem}</td>
-        <td style="color:${C.orange};font-weight:700">${df}</td>
+        <td style="color:${C.textMuted}">${rem}</td>
+        <td style="color:${C.orange};font-weight:800">${df}</td>
       </tr>`;
     });
   }
@@ -484,7 +462,7 @@ function renderDailyTable(clients) {
   const topAvg = clients.filter(c => c.avgDay > 0).sort((a, b) => b.avgDay - a.avgDay).slice(0, 10);
   chartInstances.avgDayChart = safeChart($('avgDayChart'), {
     type: 'bar',
-    data: { labels: topAvg.map(c => c.name), datasets: [{ label: 'Avg kg/day', data: topAvg.map(c => c.avgDay), backgroundColor: C.orange, borderRadius: 4 }] },
+    data: { labels: topAvg.map(c => c.name), datasets: [{ label: 'Avg kg/day', data: topAvg.map(c => c.avgDay), backgroundColor: C.orange, borderRadius: 6 }] },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 1000 },
       plugins: { legend: { display: false } },
@@ -497,10 +475,10 @@ function renderDailyTable(clients) {
     const dd = clients.filter(c => c.target > 0 && c.avgDay > 0 && c.remaining > 0).sort((a, b) => b.daysNeeded - a.daysNeeded).slice(0, 10);
     chartInstances.daysChart = safeChart(dc, {
       type: 'bar',
-      data: { labels: dd.map(c => c.name), datasets: [{ label: 'Days', data: dd.map(c => c.daysNeeded), backgroundColor: dd.map(c => c.daysNeeded > 18 ? C.orange : '#666666'), borderRadius: 4 }] },
+      data: { labels: dd.map(c => c.name), datasets: [{ label: 'Days', data: dd.map(c => c.daysNeeded), backgroundColor: dd.map(c => c.daysNeeded > 18 ? C.orange : C.slate), borderRadius: 6 }] },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 1000 },
-        plugins: { legend: { display: false }, title: { display: true, text: 'Estimated days at current pace', font: { size: 11, weight: '600' }, color: C.textMuted, padding: { bottom: 16 } } },
+        plugins: { legend: { display: false }, title: { display: true, text: 'Estimated days at current run-rate', font: { size: 11, weight: '700' }, color: C.textMuted, padding: { bottom: 16 } } },
         scales: { x: { beginAtZero: true, ticks: { font: CF } }, y: { ticks: { font: CF }, grid: { display: false } } }
       }
     });
@@ -556,7 +534,7 @@ function renderEddRows(rows) {
       <td><strong>${r.name}</strong></td>
       <td>${typeBadge}</td>
       <td>${r.transporter || '—'}</td>
-      <td style="color:${C.textHigh};font-weight:500">${r.edd || '—'}</td>
+      <td style="color:${C.textDark};font-weight:600">${r.edd || '—'}</td>
       <td>${r.reason || `<span style="color:${C.textMuted};font-style:italic">Transit Delay</span>`}</td>
     </tr>`;
   }).join('');
@@ -608,7 +586,7 @@ function populateEddFilterOptions(eddDetail) {
     values.forEach(v => {
       const opt = document.createElement('option');
       opt.value = v;
-      opt.textContent = v.length > 55 ? v.slice(0, 52) + '…' : v;
+      opt.textContent = v.length > 50 ? v.slice(0, 48) + '…' : v;
       sel.appendChild(opt);
     });
   };
@@ -678,9 +656,6 @@ async function initDashboard() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     console.log('Live data loaded from data/latest_data.json:', data.metadata?.reportDate);
-    if (data.metadata?.reportDate && $('footer-sync-note')) {
-      $('footer-sync-note').textContent = `Auto-synced: ${data.metadata.reportDate}`;
-    }
     renderDashboard(data);
   } catch (err) {
     console.warn('Could not fetch data/latest_data.json, loading embedded fallback:', err);

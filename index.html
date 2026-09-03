@@ -3,453 +3,501 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MVIKAS Logistics · Command Operations Dashboard</title>
+  <title>MVIKAS Logistics · Operations Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-  <!-- Top Cyber-Executive Navigation Bar -->
-  <header class="dash-header">
-    <div class="header-container">
-      <div class="brand-wrap">
-        <img src="mvload.png" alt="MVIKAS" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div class="brand-fallback" style="display:none">
-          <svg viewBox="0 0 40 40" width="36" height="36"><rect width="40" height="40" rx="8" fill="#f58220"/><path d="M10 28V12l5 10 5-10v16M25 12h6a4 4 0 010 8h-6v8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="brand-text-block">
-          <span class="brand-title">MVIKAS <span class="brand-orange">LOGISTICS</span></span>
-          <span class="brand-subtitle">Automated Dispatch & Operations Telemetry</span>
-        </div>
-      </div>
+  <!-- Outer Tablet Container (Inspired by Ron Design Studio UI) -->
+  <div class="tablet-frame">
+    <div class="tablet-canvas">
 
-      <!-- Center Navigation Tabs (Only 4 core panels) -->
-      <nav class="nav-tabs" role="tablist">
-        <button class="nav-tab active" role="tab" id="tab-btn-classify" onclick="switchTab('classify', this)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          <span>Classification</span>
-        </button>
-        <button class="nav-tab" role="tab" id="tab-btn-tonnage" onclick="switchTab('tonnage', this)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-          <span>Tonnage & Target</span>
-        </button>
-        <button class="nav-tab" role="tab" id="tab-btn-daily" onclick="switchTab('daily', this)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          <span>Daily Avg & KAM</span>
-        </button>
-        <button class="nav-tab" role="tab" id="tab-btn-edd" onclick="switchTab('edd', this)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-          <span>EDD Crossed</span>
-          <span class="tab-badge" id="tab-edd-badge">234</span>
-        </button>
-      </nav>
-
-      <!-- Right Telemetry Status & Upload -->
-      <div class="header-right">
-        <div class="telemetry-pill" title="GitHub Actions syncs daily at 1:00 PM IST">
-          <span class="pulse-dot-orange"></span>
-          <span class="telemetry-label">SYNC: <strong id="header-sync-time">1:00 PM IST</strong></span>
-        </div>
-
-        <div class="date-telemetry">
-          <span class="date-text" id="header-report-date">August 31, 2026</span>
-          <span class="days-pill" id="header-elapsed-days">Day 25/31</span>
-        </div>
-
-        <button type="button" class="upload-btn" onclick="openUploadModal()" title="Upload Excel / Google Sheet for instant preview">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span>Preview File</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Command Container -->
-  <main class="dash-container">
-
-    <!-- 9 Core KPI Telemetry Cards (Black & Precision Orange HUD) -->
-    <section class="kpi-hud-grid">
-      <div class="kpi-card" data-d="0">
-        <div class="kpi-top">
-          <span class="kpi-label">TOTAL OPEN</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-open">714</div>
-        <div class="kpi-sub">Active pipeline orders</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-
-      <div class="kpi-card" data-d="1">
-        <div class="kpi-top">
-          <span class="kpi-label">DAILY AVG TONNAGE</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-daily-avg">—</div>
-        <div class="kpi-sub">Month ÷ Active days</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-
-      <div class="kpi-card kpi-highlight clickable" data-d="2" onclick="goToEddDetail()" tabindex="0" title="Click to inspect EDD Crossed orders">
-        <div class="kpi-top">
-          <span class="kpi-label orange-text">EDD CROSSED</span>
-          <span class="kpi-icon orange-text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
-        </div>
-        <div class="kpi-val orange-text" id="kpi-edd">234</div>
-        <div class="kpi-sub" id="kpi-edd-pct">33% of open pipeline</div>
-        <div class="kpi-glow-bar orange-bg"></div>
-      </div>
-
-      <div class="kpi-card" data-d="3">
-        <div class="kpi-top">
-          <span class="kpi-label">DUE TOMORROW</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-due">69</div>
-        <div class="kpi-sub">At-risk delivery orders</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-
-      <div class="kpi-card" data-d="4">
-        <div class="kpi-top">
-          <span class="kpi-label">BOOKED YESTERDAY</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-booked">46</div>
-        <div class="kpi-sub" id="kpi-booked-sub">Latest batch registered</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-
-      <div class="kpi-card" data-d="5">
-        <div class="kpi-top">
-          <span class="kpi-label">YESTERDAY TONNAGE</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-daily-ton">—</div>
-        <div class="kpi-sub">All active clients</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-
-      <div class="kpi-card" data-d="6">
-        <div class="kpi-top">
-          <span class="kpi-label">MONTH TONNAGE</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-month-ton">—</div>
-        <div class="kpi-sub">Cumulative monthly kg</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-
-      <div class="kpi-card" data-d="7">
-        <div class="kpi-top">
-          <span class="kpi-label">SALES TARGET</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/><path d="M12 12v6"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-target-money">₹84,45,000</div>
-        <div class="kpi-sub">Fixed monthly target</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-
-      <div class="kpi-card" data-d="8">
-        <div class="kpi-top">
-          <span class="kpi-label">SALES ACHIEVED</span>
-          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-        </div>
-        <div class="kpi-val" id="kpi-sales-money">—</div>
-        <div class="kpi-sub">Achieved kg × client rate</div>
-        <div class="kpi-glow-bar"></div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         PANEL 1: CLASSIFICATION
-         ═══════════════════════════════════════════════════════════════ -->
-    <div id="tab-classify" class="hud-panel active">
-      <!-- Telemetry Strip -->
-      <div class="hud-strip">
-        <div class="hud-strip-item"><span class="h-dot dot-orange"></span>EDD Crossed<strong id="strip-edd">234</strong></div>
-        <div class="hud-strip-item"><span class="h-dot dot-gray"></span>In Transit<strong id="strip-transit">480</strong></div>
-        <div class="hud-strip-item"><span class="h-dot dot-dark"></span>Due Tomorrow<strong id="strip-due">69</strong></div>
-        <div class="hud-strip-item"><span class="h-dot dot-dim"></span>Booked<strong id="strip-booked">46</strong></div>
-      </div>
-
-      <div class="hud-row2">
-        <!-- Status Donut -->
-        <div class="hud-card">
-          <div class="hud-card-head"><span class="hud-title">Shipment Status Telemetry</span></div>
-          <div class="donut-container">
-            <div class="donut-stats-list">
-              <div class="dsl-row"><span class="dsl-dot dot-orange"></span><span class="dsl-label">EDD Crossed</span><strong id="dl-edd">234</strong></div>
-              <div class="dsl-row"><span class="dsl-dot dot-gray"></span><span class="dsl-label">In Transit</span><strong id="dl-transit">480</strong></div>
-              <div class="dsl-row"><span class="dsl-dot dot-dark"></span><span class="dsl-label">Due Tomorrow</span><strong id="dl-due">69</strong></div>
-              <div class="dsl-row"><span class="dsl-dot dot-dim"></span><span class="dsl-label">Booked</span><strong id="dl-booked">46</strong></div>
+      <!-- Top Studio Header -->
+      <header class="studio-header">
+        <div class="header-left">
+          <div class="app-icon-circle">
+            <img src="mvload.png" alt="MVIKAS" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="brand-fallback" style="display:none">
+              <svg viewBox="0 0 40 40" width="22" height="22"><rect width="40" height="40" rx="10" fill="#f58220"/><path d="M10 28V12l5 10 5-10v16M25 12h6a4 4 0 010 8h-6v8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <div class="chart-wrapper" style="height:250px"><canvas id="statusDonut"></canvas></div>
+          </div>
+          <div class="header-title-block">
+            <h1 class="header-title">Logistics Operations</h1>
+            <span class="header-sub">MVIKAS Fleet Command · Daily Intelligence</span>
           </div>
         </div>
 
-        <!-- EDD Crossed by Customer -->
-        <div class="hud-card">
-          <div class="hud-card-head"><span class="hud-title">EDD Crossed — by Customer</span></div>
-          <div class="chart-wrapper" style="height:320px"><canvas id="eddBarChart"></canvas></div>
-        </div>
-      </div>
+        <!-- Pill Navigation (4 core panels) -->
+        <nav class="pill-nav" role="tablist">
+          <button class="pill-tab active" role="tab" id="tab-btn-classify" onclick="switchTab('classify', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+            <span>Classification</span>
+          </button>
+          <button class="pill-tab" role="tab" id="tab-btn-tonnage" onclick="switchTab('tonnage', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            <span>Tonnage & Target</span>
+          </button>
+          <button class="pill-tab" role="tab" id="tab-btn-daily" onclick="switchTab('daily', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span>Daily Avg & KAM</span>
+          </button>
+          <button class="pill-tab" role="tab" id="tab-btn-edd" onclick="switchTab('edd', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <span>EDD Crossed</span>
+            <span class="count-chip" id="tab-edd-badge">234</span>
+          </button>
+          <button type="button" class="pill-tab action-pill" onclick="openUploadModal()" title="Upload or Preview Excel Sheet">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Upload .xlsx</span>
+          </button>
+        </nav>
+      </header>
 
-      <div class="hud-row2">
-        <div class="hud-card">
-          <div class="hud-card-head"><span class="hud-title">Due Tomorrow — by Customer</span></div>
-          <div class="chart-wrapper" style="height:260px"><canvas id="dueTmrChart"></canvas></div>
-        </div>
-        <div class="hud-card">
-          <div class="hud-card-head"><span class="hud-title">Booked Yesterday — by Customer</span></div>
-          <div class="chart-wrapper" style="height:260px"><canvas id="bookedChart"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Open Shipments Table -->
-      <div class="hud-card">
-        <div class="hud-card-head"><span class="hud-title">Open Shipments — All Customers</span></div>
-        <div class="table-container">
-          <table class="hud-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Customer</th>
-                <th>Open Pipeline</th>
-                <th>EDD Crossed</th>
-                <th>Due Tomorrow</th>
-                <th>% Delayed</th>
-                <th>Risk Level</th>
-              </tr>
-            </thead>
-            <tbody id="open-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         PANEL 2: TONNAGE & FORECAST
-         ═══════════════════════════════════════════════════════════════ -->
-    <div id="tab-tonnage" class="hud-panel">
-      <!-- Revenue Forecast Trajectory Card -->
-      <div class="hud-card forecast-hud-card">
-        <div class="hud-card-head"><span class="hud-title">Revenue Trajectory — Monthly Forecast Telemetry</span></div>
-        <div class="forecast-hud-grid">
-          <div class="fh-stat">
-            <span class="fh-label">TOTAL TARGET</span>
-            <div class="fh-val" id="forecast-target-money">₹84,45,000</div>
+      <!-- Executive Overview Row (Matching Reference Profile Card & Telemetry Readouts) -->
+      <section class="overview-section">
+        <!-- Operations Profile Pebble Card -->
+        <div class="profile-pebble">
+          <div class="avatar-box">
+            <span>MV</span>
+            <span class="avatar-dot"></span>
           </div>
-          <div class="fh-stat">
-            <span class="fh-label">SALES TILL DATE</span>
-            <div class="fh-val" id="forecast-sales-money">—</div>
-          </div>
-          <div class="fh-stat fh-highlight">
-            <span class="fh-label">PROJECTED MONTH-END</span>
-            <div class="fh-val orange-text" id="forecast-predicted-money">—</div>
+          <div class="profile-info">
+            <span class="p-status">Operations Active</span>
+            <strong class="p-name">MVIKAS Hub</strong>
+            <span class="p-date" id="header-report-date">August 31, 2026</span>
           </div>
         </div>
 
-        <div class="forecast-status-bar">
-          <span class="f-badge" id="forecast-badge">—</span>
-          <span class="f-verdict" id="forecast-verdict-text"></span>
-        </div>
-
-        <div class="progress-track-wrap">
-          <div class="progress-track">
-            <div class="progress-fill" id="forecast-bar-fill"></div>
-            <div class="target-marker" id="forecast-bar-target-marker"></div>
+        <!-- Horizontal Telemetry Readouts -->
+        <div class="telemetry-flow">
+          <div class="tele-item">
+            <span class="t-label">Pipeline</span>
+            <strong class="t-val"><span id="kpi-open">714</span> <small>orders</small></strong>
           </div>
-          <div class="progress-labels">
-            <span>₹0</span>
-            <span id="forecast-bar-target-label">Target: ₹84,45,000</span>
+          <div class="tele-item">
+            <span class="t-label">Daily Avg</span>
+            <strong class="t-val" id="kpi-daily-avg">21,376 <small>kg/day</small></strong>
           </div>
-        </div>
-        <p class="footnote" id="forecast-explain"></p>
-      </div>
-
-      <!-- Tonnage % Completion with Period Filter -->
-      <div class="hud-card">
-        <div class="hud-card-head space-between">
-          <span class="hud-title" id="tonnage-panel-title">Tonnage — % Completion</span>
-          <div class="filter-wrap">
-            <select id="tonnage-period-filter" class="hud-select" onchange="setTonnagePeriod(this.value)">
-              <option value="full" selected>Full Month</option>
-              <option value="first10">First 10 Days</option>
-              <option value="mid10">Mid 10 Days</option>
-              <option value="last10">Last 10 Days</option>
-            </select>
+          <div class="tele-item highlight-amber clickable" onclick="goToEddDetail()" title="Click to view EDD Crossed orders">
+            <span class="t-label">EDD Crossed</span>
+            <strong class="t-val orange-text"><span id="kpi-edd">234</span> <small id="kpi-edd-pct">33% of open</small></strong>
           </div>
-        </div>
-        <div class="legend-strip" id="tonnage-legend"></div>
-        <div id="tonnage-bars" class="tonnage-bars-list"></div>
-      </div>
-
-      <!-- Target vs Achieved Bar Chart -->
-      <div class="hud-card">
-        <div class="hud-card-head"><span class="hud-title">Target vs Achieved (Top 8 Customers)</span></div>
-        <div class="chart-wrapper" style="height:360px"><canvas id="targetChart"></canvas></div>
-      </div>
-
-      <!-- KAM Performance Summary -->
-      <div class="hud-card">
-        <div class="hud-card-head"><span class="hud-title">KAM Performance Summary</span></div>
-        <div class="kam-kpi-strip">
-          <div class="kam-kpi"><span class="kk-label">Total Target</span><div class="kk-val" id="kam-total-target">—</div></div>
-          <div class="kam-kpi"><span class="kk-label">Total Achieved</span><div class="kk-val" id="kam-total-achieved">—</div></div>
-          <div class="kam-kpi kk-highlight"><span class="kk-label">Completion %</span><div class="kk-val orange-text" id="kam-total-pct">—</div></div>
-        </div>
-        <div class="table-container">
-          <table class="hud-table">
-            <thead>
-              <tr>
-                <th>KAM Name</th>
-                <th>Target (kg)</th>
-                <th>Achieved (kg)</th>
-                <th>% Done</th>
-              </tr>
-            </thead>
-            <tbody id="kam-summary-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         PANEL 3: DAILY AVG & KAM PACE
-         ═══════════════════════════════════════════════════════════════ -->
-    <div id="tab-daily" class="hud-panel">
-      <div class="hud-card">
-        <div class="hud-card-head"><span class="hud-title">Daily Average Run-Rate & Completion Forecast</span></div>
-        <div class="table-container">
-          <table class="hud-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>KAM</th>
-                <th>Target (kg)</th>
-                <th>Achieved (kg)</th>
-                <th>%</th>
-                <th>Active Days</th>
-                <th>Avg kg/Day</th>
-                <th>Remaining</th>
-                <th>Days to Target*</th>
-              </tr>
-            </thead>
-            <tbody id="daily-table-body"></tbody>
-          </table>
-        </div>
-        <p class="footnote">* Straight-line extrapolation based on elapsed active working days.</p>
-      </div>
-
-      <div class="hud-row2">
-        <div class="hud-card">
-          <div class="hud-card-head"><span class="hud-title">Avg kg/Day (Top 10 Customers)</span></div>
-          <div class="chart-wrapper" style="height:360px"><canvas id="avgDayChart"></canvas></div>
-        </div>
-        <div class="hud-card">
-          <div class="hud-card-head"><span class="hud-title">Estimated Days to Hit Target</span></div>
-          <div class="chart-wrapper" style="height:360px"><canvas id="daysChart"></canvas></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         PANEL 4: EDD CROSSED (ORDERS DEEP-DIVE)
-         ═══════════════════════════════════════════════════════════════ -->
-    <div id="tab-edd" class="hud-panel">
-      <!-- 4 EDD Summary Telemetry Blocks -->
-      <div class="edd-telemetry-grid">
-        <div class="edd-telemetry-card">
-          <div class="etc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
-          <div class="etc-content">
-            <span class="etc-label">TOTAL DELAYED</span>
-            <div class="etc-val orange-text" id="edd-total-count">234</div>
-            <span class="etc-sub">Active crossed EDD</span>
+          <div class="tele-item">
+            <span class="t-label">Due Tomorrow</span>
+            <strong class="t-val"><span id="kpi-due">69</span> <small>at risk</small></strong>
           </div>
-        </div>
-
-        <div class="edd-telemetry-card">
-          <div class="etc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
-          <div class="etc-content">
-            <span class="etc-label">PRIMARY REASON</span>
-            <div class="etc-val" id="edd-top-reason-name">—</div>
-            <span class="etc-sub" id="edd-top-reason-pct">0%</span>
+          <div class="tele-item">
+            <span class="t-label">Booked Yesterday</span>
+            <strong class="t-val"><span id="kpi-booked">46</span> <small>batch</small></strong>
           </div>
-        </div>
-
-        <div class="edd-telemetry-card">
-          <div class="etc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13"/><polygon points="23 7 16 12 16 3"/></svg></div>
-          <div class="etc-content">
-            <span class="etc-label">TOP LAGGING TRANSPORTER</span>
-            <div class="etc-val" id="edd-worst-carrier">—</div>
-            <span class="etc-sub" id="edd-worst-carrier-count">0 delayed</span>
+          <div class="tele-item">
+            <span class="t-label">Cumulative Month</span>
+            <strong class="t-val" id="kpi-month-ton">534,400 <small>kg</small></strong>
           </div>
+          <div class="tele-item">
+            <span class="t-label">Achieved Revenue</span>
+            <strong class="t-val" id="kpi-sales-money">₹66.39L <small>/ ₹84.45L</small></strong>
+          </div>
+          <!-- Hidden fallback nodes for any script queries -->
+          <span id="kpi-daily-ton" style="display:none">22,398 kg</span>
+          <span id="kpi-target-money" style="display:none">₹84,45,000</span>
+          <span id="kpi-booked-sub" style="display:none"></span>
         </div>
+      </section>
 
-        <div class="edd-telemetry-card wide-card">
-          <span class="etc-label">TOP REASONS BREAKDOWN</span>
-          <div id="edd-reason-bars" class="reason-bars-list"></div>
-        </div>
-      </div>
+      <!-- Connected Dispatch Milestone Flow (Directly from Reference Connected Timeline) -->
+      <section class="milestone-flow-section">
+        <div class="flow-track">
+          <div class="flow-line"></div>
 
-      <!-- Filterable EDD Table Card -->
-      <div class="hud-card">
-        <div class="hud-card-head space-between">
-          <span class="hud-title">EDD Crossed — Order Level Detail</span>
-          <div class="edd-actions">
-            <div class="search-box">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="edd-search" placeholder="Search orders, clients, carriers..." oninput="applyEddFilters()" class="hud-search-input">
+          <!-- Node 1: Booked Yesterday -->
+          <div class="flow-node">
+            <div class="node-marker yellow-marker">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
             </div>
-            <button type="button" class="export-btn" onclick="exportEddToExcel()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>Export to Excel</span>
-            </button>
+            <div class="node-label">Booked Batch</div>
+            <div class="node-pebble-card">
+              <div class="npc-header">
+                <span class="npc-title">Yesterday</span>
+                <span class="npc-pill" id="strip-booked">46</span>
+              </div>
+              <div class="npc-body">
+                <strong>Carrier Refrigeration (45)</strong>
+                <div class="npc-bar"><div class="npc-bar-fill" style="width:100%;background:#f58220"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Node 2: In Transit -->
+          <div class="flow-node">
+            <div class="node-marker dark-marker">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg>
+            </div>
+            <div class="node-label">Active Freight</div>
+            <div class="node-pebble-card">
+              <div class="npc-header">
+                <span class="npc-title">In Transit</span>
+                <span class="npc-pill dark-pill" id="strip-transit">480</span>
+              </div>
+              <div class="npc-body">
+                <strong>On-Schedule Transit</strong>
+                <div class="npc-bar"><div class="npc-bar-fill" style="width:67%;background:#2e3034"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Node 3: Due Tomorrow -->
+          <div class="flow-node">
+            <div class="node-marker yellow-marker">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="node-label">At-Risk SLA</div>
+            <div class="node-pebble-card">
+              <div class="npc-header">
+                <span class="npc-title">Due Tomorrow</span>
+                <span class="npc-pill" id="strip-due">69</span>
+              </div>
+              <div class="npc-body">
+                <strong>Carrier Ref (35) · Bombax (34)</strong>
+                <div class="npc-bar"><div class="npc-bar-fill" style="width:50%;background:#f58220"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Node 4: EDD Crossed -->
+          <div class="flow-node">
+            <div class="node-marker red-marker">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            </div>
+            <div class="node-label">Crossed EDD</div>
+            <div class="node-pebble-card highlight-card">
+              <div class="npc-header">
+                <span class="npc-title">Alerts</span>
+                <span class="npc-pill alert-pill" id="strip-edd">234</span>
+              </div>
+              <div class="npc-body">
+                <strong class="orange-text">Action Required</strong>
+                <div class="npc-bar"><div class="npc-bar-fill" style="width:33%;background:#ef4444"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           PANEL 1: CLASSIFICATION (Active by default)
+           ═══════════════════════════════════════════════════════════════ -->
+      <div id="tab-classify" class="studio-panel active">
+        <div class="pebble-grid-2">
+          <!-- Status Donut Card -->
+          <div class="pebble-card">
+            <div class="card-top">
+              <h3 class="card-heading">Shipment Status Composition</h3>
+              <span class="card-badge">Live Pipeline</span>
+            </div>
+            <div class="donut-content-row">
+              <div class="donut-stats-list">
+                <div class="ds-item"><span class="ds-dot" style="background:#f58220"></span><span>EDD Crossed</span><strong id="dl-edd">234</strong></div>
+                <div class="ds-item"><span class="ds-dot" style="background:#2e3034"></span><span>In Transit</span><strong id="dl-transit">480</strong></div>
+                <div class="ds-item"><span class="ds-dot" style="background:#f5be18"></span><span>Due Tomorrow</span><strong id="dl-due">69</strong></div>
+                <div class="ds-item"><span class="ds-dot" style="background:#d2cfc4"></span><span>Booked</span><strong id="dl-booked">46</strong></div>
+              </div>
+              <div class="chart-box" style="height:230px"><canvas id="statusDonut"></canvas></div>
+            </div>
+          </div>
+
+          <!-- EDD Crossed by Customer Bar Chart -->
+          <div class="pebble-card">
+            <div class="card-top">
+              <h3 class="card-heading">EDD Crossed — by Customer</h3>
+              <span class="card-badge">Delay Distribution</span>
+            </div>
+            <div class="chart-box" style="height:270px"><canvas id="eddBarChart"></canvas></div>
           </div>
         </div>
 
-        <!-- Filter Controls Row -->
-        <div class="filter-controls-row">
-          <select id="edd-filter-type" class="hud-select" onchange="applyEddFilters()"><option value="">All Types</option></select>
-          <select id="edd-filter-transporter" class="hud-select" onchange="applyEddFilters()"><option value="">All Transporters</option></select>
-          <select id="edd-filter-reason" class="hud-select" onchange="applyEddFilters()"><option value="">All Delay Reasons</option></select>
-          <button type="button" class="reset-btn" onclick="resetEddFilters()">Reset</button>
-          <span class="record-counter" id="edd-detail-count"></span>
+        <div class="pebble-grid-2">
+          <div class="pebble-card">
+            <div class="card-top"><h3 class="card-heading">Due Tomorrow — by Customer</h3></div>
+            <div class="chart-box" style="height:230px"><canvas id="dueTmrChart"></canvas></div>
+          </div>
+          <div class="pebble-card">
+            <div class="card-top"><h3 class="card-heading">Booked Yesterday</h3></div>
+            <div class="chart-box" style="height:230px"><canvas id="bookedChart"></canvas></div>
+          </div>
         </div>
 
-        <div class="table-container table-scrollable">
-          <table class="hud-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Type</th>
-                <th>Transporter</th>
-                <th>EDD</th>
-                <th>Delay Reason</th>
-              </tr>
-            </thead>
-            <tbody id="edd-detail-body"></tbody>
-          </table>
+        <!-- Open Shipments Table -->
+        <div class="pebble-card">
+          <div class="card-top">
+            <h3 class="card-heading">Open Shipments — All Customers</h3>
+            <span class="card-badge">714 Active Orders</span>
+          </div>
+          <div class="pebble-table-wrap">
+            <table class="pebble-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Customer</th>
+                  <th>Open Pipeline</th>
+                  <th>EDD Crossed</th>
+                  <th>Due Tomorrow</th>
+                  <th>% Delayed</th>
+                  <th>Risk Assessment</th>
+                </tr>
+              </thead>
+              <tbody id="open-table-body"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           PANEL 2: TONNAGE & FORECAST
+           ═══════════════════════════════════════════════════════════════ -->
+      <div id="tab-tonnage" class="studio-panel">
+        <!-- Revenue Trajectory Card -->
+        <div class="pebble-card forecast-pebble">
+          <div class="card-top">
+            <div>
+              <h3 class="card-heading">Revenue Trajectory — Target Forecast</h3>
+              <p class="card-sub">Straight-line projection based on 25 active operating days</p>
+            </div>
+            <span class="pill-tag good" id="forecast-badge">ON TRACK</span>
+          </div>
+
+          <div class="forecast-readouts-row">
+            <div class="fr-box">
+              <span class="fr-label">Monthly Target</span>
+              <strong class="fr-num" id="forecast-target-money">₹84,45,000</strong>
+            </div>
+            <div class="fr-box">
+              <span class="fr-label">Achieved Till Date</span>
+              <strong class="fr-num" id="forecast-sales-money">—</strong>
+            </div>
+            <div class="fr-box highlight-box">
+              <span class="fr-label">Projected Month-End</span>
+              <strong class="fr-num orange-text" id="forecast-predicted-money">—</strong>
+            </div>
+          </div>
+
+          <div class="organic-progress-track">
+            <div class="organic-progress-fill" id="forecast-bar-fill"></div>
+            <div class="organic-marker" id="forecast-bar-target-marker"></div>
+          </div>
+          <div class="progress-labels-row">
+            <span>₹0 Baseline</span>
+            <span id="forecast-verdict-text" class="verdict-note">Projected trajectory</span>
+            <span id="forecast-bar-target-label">Target: ₹84.45L</span>
+          </div>
+          <p class="footnote" id="forecast-explain"></p>
+        </div>
+
+        <!-- Tonnage % Completion -->
+        <div class="pebble-card">
+          <div class="card-top space-between">
+            <h3 class="card-heading" id="tonnage-panel-title">Tonnage — % Completion</h3>
+            <div class="select-pill-wrap">
+              <select id="tonnage-period-filter" class="pebble-select" onchange="setTonnagePeriod(this.value)">
+                <option value="full" selected>Full Month</option>
+                <option value="first10">First 10 Days</option>
+                <option value="mid10">Mid 10 Days</option>
+                <option value="last10">Last 10 Days</option>
+              </select>
+            </div>
+          </div>
+          <div class="legend-row" id="tonnage-legend"></div>
+          <div id="tonnage-bars" class="tonnage-bars-stream"></div>
+        </div>
+
+        <!-- Target vs Achieved Top 8 -->
+        <div class="pebble-card">
+          <div class="card-top"><h3 class="card-heading">Target vs Achieved (Top 8 Customers)</h3></div>
+          <div class="chart-box" style="height:350px"><canvas id="targetChart"></canvas></div>
+        </div>
+
+        <!-- KAM Summary -->
+        <div class="pebble-card">
+          <div class="card-top"><h3 class="card-heading">KAM Performance Summary</h3></div>
+          <div class="kam-pill-strip">
+            <div class="kps-item"><span class="kps-lab">Total Target</span><strong id="kam-total-target">—</strong></div>
+            <div class="kps-item"><span class="kps-lab">Total Achieved</span><strong id="kam-total-achieved">—</strong></div>
+            <div class="kps-item highlight"><span class="kps-lab">Completion Rate</span><strong class="orange-text" id="kam-total-pct">—</strong></div>
+          </div>
+          <div class="pebble-table-wrap">
+            <table class="pebble-table">
+              <thead>
+                <tr><th>KAM Name</th><th>Target (kg)</th><th>Achieved (kg)</th><th>% Done</th></tr>
+              </thead>
+              <tbody id="kam-summary-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           PANEL 3: DAILY AVG & KAM
+           ═══════════════════════════════════════════════════════════════ -->
+      <div id="tab-daily" class="studio-panel">
+        <div class="pebble-card">
+          <div class="card-top"><h3 class="card-heading">Daily Average Run-Rate & Days to Target</h3></div>
+          <div class="pebble-table-wrap">
+            <table class="pebble-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>KAM</th>
+                  <th>Target (kg)</th>
+                  <th>Achieved (kg)</th>
+                  <th>%</th>
+                  <th>Active Days</th>
+                  <th>Avg kg/Day</th>
+                  <th>Remaining</th>
+                  <th>Days Left*</th>
+                </tr>
+              </thead>
+              <tbody id="daily-table-body"></tbody>
+            </table>
+          </div>
+          <p class="footnote">* Straight-line pace based on active days elapsed.</p>
+        </div>
+
+        <div class="pebble-grid-2">
+          <div class="pebble-card">
+            <div class="card-top"><h3 class="card-heading">Avg kg/Day (Top 10)</h3></div>
+            <div class="chart-box" style="height:340px"><canvas id="avgDayChart"></canvas></div>
+          </div>
+          <div class="pebble-card">
+            <div class="card-top"><h3 class="card-heading">Days Needed at Current Pace</h3></div>
+            <div class="chart-box" style="height:340px"><canvas id="daysChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           PANEL 4: EDD CROSSED
+           ═══════════════════════════════════════════════════════════════ -->
+      <div id="tab-edd" class="studio-panel">
+        <!-- 4 Summary Pebble Cards -->
+        <div class="edd-pebble-grid">
+          <div class="pebble-mini-card">
+            <div class="pmc-icon red-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+            <div class="pmc-text">
+              <span class="pmc-lab">TOTAL DELAYED</span>
+              <strong class="pmc-val orange-text" id="edd-total-count">234</strong>
+              <span class="pmc-sub">Crossed EDD orders</span>
+            </div>
+          </div>
+
+          <div class="pebble-mini-card">
+            <div class="pmc-icon yellow-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+            <div class="pmc-text">
+              <span class="pmc-lab">PRIMARY REASON</span>
+              <strong class="pmc-val" id="edd-top-reason-name">—</strong>
+              <span class="pmc-sub" id="edd-top-reason-pct">0%</span>
+            </div>
+          </div>
+
+          <div class="pebble-mini-card">
+            <div class="pmc-icon dark-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="23 7 16 12 16 3"/></svg></div>
+            <div class="pmc-text">
+              <span class="pmc-lab">TOP CARRIER</span>
+              <strong class="pmc-val" id="edd-worst-carrier">—</strong>
+              <span class="pmc-sub" id="edd-worst-carrier-count">0 delayed</span>
+            </div>
+          </div>
+
+          <div class="pebble-mini-card wide-card">
+            <span class="pmc-lab">PRIMARY ROOT CAUSES</span>
+            <div id="edd-reason-bars" class="reason-stream-list"></div>
+          </div>
+        </div>
+
+        <!-- Filterable Table Pebble Card -->
+        <div class="pebble-card">
+          <div class="card-top space-between">
+            <h3 class="card-heading">EDD Crossed — Order Level Detail</h3>
+            <div class="search-actions-row">
+              <div class="pebble-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="edd-search" placeholder="Search orders, clients, carriers..." oninput="applyEddFilters()">
+              </div>
+              <button type="button" class="pill-export-btn" onclick="exportEddToExcel()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Export Excel</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="pebble-filters-row">
+            <select id="edd-filter-type" class="pebble-select" onchange="applyEddFilters()"><option value="">All Types</option></select>
+            <select id="edd-filter-transporter" class="pebble-select" onchange="applyEddFilters()"><option value="">All Transporters</option></select>
+            <select id="edd-filter-reason" class="pebble-select" onchange="applyEddFilters()"><option value="">All Delay Reasons</option></select>
+            <button type="button" class="pill-reset-btn" onclick="resetEddFilters()">Reset</button>
+            <span class="order-counter" id="edd-detail-count"></span>
+          </div>
+
+          <div class="pebble-table-wrap scrollable-table">
+            <table class="pebble-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Type</th>
+                  <th>Transporter</th>
+                  <th>EDD</th>
+                  <th>Delay Reason</th>
+                </tr>
+              </thead>
+              <tbody id="edd-detail-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div> <!-- /tablet-canvas -->
+
+    <!-- Floating Dark Capsule Dock (Directly from Reference Bottom Navigation) -->
+    <div class="floating-dock">
+      <div class="dock-pill">
+        <div class="dock-item live-pulse">
+          <span class="dock-dot dot-pulse"></span>
+          <span class="dock-text">AUTO-SYNC: 1:00 PM IST</span>
+        </div>
+        <div class="dock-divider"></div>
+        <div class="dock-item">
+          <span class="dock-dot dot-yellow"></span>
+          <span class="dock-text" id="header-elapsed-days">Day 25/31</span>
+        </div>
+        <div class="dock-divider"></div>
+        <div class="dock-item clickable" onclick="goToEddDetail()">
+          <span class="dock-dot dot-orange"></span>
+          <span class="dock-text">234 EDD Alerts</span>
+        </div>
+        <div class="dock-divider"></div>
+        <button type="button" class="dock-btn" onclick="openUploadModal()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Preview Sheet</span>
+        </button>
       </div>
     </div>
 
-  </main>
+  </div> <!-- /tablet-frame -->
 
-  <!-- In-Browser Upload / Preview Modal -->
+  <!-- In-Browser Upload Modal -->
   <div id="upload-modal" class="modal-overlay" style="display:none">
-    <div class="modal-card">
+    <div class="modal-pebble-card">
       <div class="modal-head">
         <h4 class="modal-title">Live Preview Excel Workbook</h4>
         <button type="button" class="modal-close" onclick="closeUploadModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Drag & drop your operational Excel workbook (.xlsx) to immediately preview updated numbers directly on this dashboard.</p>
+        <p class="modal-desc">Drag & drop your operational Excel workbook (.xlsx) to immediately preview updated numbers on this dashboard.</p>
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('excel-file-input').click()">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <span class="drop-text">Click or drop .xlsx workbook here</span>
@@ -459,13 +507,6 @@
       </div>
     </div>
   </div>
-
-  <footer class="footer">
-    <div class="footer-inner">
-      <span class="footer-brand"><svg width="16" height="16" viewBox="0 0 40 40"><rect width="40" height="40" rx="6" fill="#f58220"/><path d="M10 28V12l5 10 5-10v16" stroke="#000" stroke-width="2.5" stroke-linecap="round"/></svg>MVIKAS Logistics · Command Operations</span>
-      <span class="footer-note" id="footer-sync-note">Automated sync daily at 1:00 PM IST via GitHub Actions</span>
-    </div>
-  </footer>
 
   <script src="script.js"></script>
 </body>
