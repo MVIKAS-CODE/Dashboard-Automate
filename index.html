@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MVIKAS Logistics · Executive Dispatch & Operations Command Center</title>
+  <title>MVIKAS Logistics · Executive Operations Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-  <!-- Top Navigation Bar (Inspired by Logistics Command Studio) -->
+  <!-- Header -->
   <header class="dash-header">
     <div class="header-container">
       <div class="brand-wrap">
@@ -23,139 +23,102 @@
         </div>
         <div class="brand-text-block">
           <span class="brand-title">MVIKAS <span class="brand-sub">LOGISTICS</span></span>
-          <span class="brand-subtitle">Automated Dispatch Intelligence</span>
+          <span class="brand-subtitle">Executive Operations Dashboard</span>
         </div>
+        <div class="brand-divider"></div>
       </div>
 
-      <!-- Center Pill Navigation -->
-      <nav class="nav-pills" role="tablist">
-        <button class="nav-pill active" role="tab" onclick="switchTab('dispatch', this)" id="nav-btn-dispatch">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-          <span>Fleet & Dispatch</span>
-        </button>
-        <button class="nav-pill" role="tab" onclick="switchTab('classify', this)" id="nav-btn-classify">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          <span>Classification</span>
-        </button>
-        <button class="nav-pill" role="tab" onclick="switchTab('tonnage', this)" id="nav-btn-tonnage">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-          <span>Tonnage & Forecast</span>
-        </button>
-        <button class="nav-pill" role="tab" onclick="switchTab('daily', this)" id="nav-btn-daily">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          <span>Daily Avg & KAM</span>
-        </button>
-        <button class="nav-pill" role="tab" onclick="switchTab('edd', this)" id="tab-btn-edd">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-          <span>EDD Crossed</span>
-          <span class="pill-badge-count" id="tab-edd-badge">234</span>
-        </button>
-        <button class="nav-pill" role="tab" onclick="switchTab('reasons', this)" id="tab-btn-reasons">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <span>Root Causes</span>
-          <span class="pill-badge-count" id="tab-reasons-badge">234</span>
-        </button>
-      </nav>
-
-      <!-- Right Header Actions -->
-      <div class="header-right">
-        <div class="sync-status-pill" title="Automated pipeline syncs daily at 1:00 PM IST">
+      <div class="header-info">
+        <span class="live-badge" title="Automated pipeline syncs daily at 1:00 PM IST">
           <span class="live-dot pulse"></span>
-          <span class="sync-text">AUTO-SYNC: <strong id="header-sync-time">1:00 PM IST</strong></span>
-        </div>
-
-        <button type="button" class="action-icon-btn" onclick="openUploadModal()" title="Upload or Preview Excel/Google Sheet">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span id="header-sync-label">LIVE SYNC · 1:00 PM IST</span>
+        </span>
+        <span class="date-badge">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/></svg>
+          <span id="header-report-date">August 31, 2026</span>
+        </span>
+        <span class="elapsed-badge">
+          <svg viewBox="0 0 36 36" width="18" height="18" class="prog-ring">
+            <path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="#2a2a2a" stroke-width="3"/>
+            <path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="#f58220" stroke-width="3" stroke-dasharray="100,100" class="ring-fill" id="header-prog-ring"/>
+          </svg>
+          <span id="header-elapsed-days">Day 31/31</span>
+        </span>
+        <button type="button" class="upload-trigger-btn" onclick="openUploadModal()" title="Upload or Preview Excel Sheet">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Upload Sheet</span>
         </button>
-
-        <div class="dispatcher-badge">
-          <div class="dispatcher-avatar">
-            <span>MV</span>
-            <span class="avatar-status"></span>
-          </div>
-          <div class="dispatcher-info">
-            <span class="disp-title">Dispatcher</span>
-            <span class="disp-name">Operations Hub</span>
-          </div>
-        </div>
       </div>
     </div>
   </header>
 
-  <!-- Top Hero Title & Inline Metric Badges -->
-  <section class="command-hero">
-    <div class="command-hero-inner">
-      <div class="hero-title-area">
-        <div class="hero-breadcrumb">
-          <span class="breadcrumb-item">Logistics Command</span>
-          <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-active" id="current-view-title">Trucks & Freight Management</span>
-        </div>
-        <h1 class="hero-heading">Logistics Executive Command Center</h1>
-        <p class="hero-subtext">Real-time dispatcher monitoring, Google Sheets daily automated pipeline, and predictive freight analytics.</p>
-      </div>
-
-      <!-- Quick Metrics Strip (Matching the uploaded design badges) -->
-      <div class="hero-metrics-strip">
-        <div class="h-metric-item">
-          <span class="h-metric-label">Total Weight</span>
-          <div class="h-metric-val-wrap">
-            <span class="h-metric-val" id="hero-weight-val">534,400</span><span class="h-metric-unit">kg</span>
-            <span class="trend-badge trend-up">+33%</span>
-          </div>
-        </div>
-        <div class="h-metric-sep"></div>
-        <div class="h-metric-item">
-          <span class="h-metric-label">Open Shipments</span>
-          <div class="h-metric-val-wrap">
-            <span class="h-metric-val" id="hero-open-val">714</span><span class="h-metric-unit">orders</span>
+  <!-- Hero Section (Executive Stat Cards with Clean Trend Badges) -->
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-grid">
+        <div class="hero-stat anim-card" data-d="0">
+          <div class="hs-head">
+            <div class="hs-label">Open Shipments</div>
             <span class="trend-badge trend-neutral">+15%</span>
           </div>
+          <div class="hs-val counter" id="hero-open-val" data-target="714">714</div>
+          <div class="hs-sub">Active pipeline orders</div>
         </div>
-        <div class="h-metric-sep"></div>
-        <div class="h-metric-item">
-          <span class="h-metric-label">EDD Alerts</span>
-          <div class="h-metric-val-wrap">
-            <span class="h-metric-val" id="hero-edd-val">234</span><span class="h-metric-unit">delayed</span>
+
+        <div class="hero-stat anim-card" data-d="1">
+          <div class="hs-head">
+            <div class="hs-label">EDD Crossed</div>
             <span class="trend-badge trend-alert">-22%</span>
           </div>
+          <div class="hs-val counter" id="hero-edd-val" data-target="234">234</div>
+          <div class="hs-sub">Delayed deliveries</div>
         </div>
-        <div class="h-metric-sep"></div>
-        <div class="h-metric-item">
-          <span class="h-metric-label">Revenue Achieved</span>
-          <div class="h-metric-val-wrap">
-            <span class="h-metric-currency">₹</span><span class="h-metric-val" id="hero-revenue-val">66.39</span><span class="h-metric-unit">Lakh</span>
+
+        <div class="hero-stat anim-card" data-d="2">
+          <div class="hs-head">
+            <div class="hs-label">Tonnage (kg)</div>
+            <span class="trend-badge trend-up">+33%</span>
+          </div>
+          <div class="hs-val"><span class="counter" id="hero-weight-val" data-target="534.40" data-decimals="2">534.40</span>k</div>
+          <div class="hs-sub">Cumulative month total</div>
+        </div>
+
+        <div class="hero-stat anim-card" data-d="3">
+          <div class="hs-head">
+            <div class="hs-label">Approx Revenue</div>
             <span class="trend-badge trend-purple">Target ₹84.45L</span>
           </div>
+          <div class="hs-val">₹<span class="counter" id="hero-revenue-val" data-target="66.39" data-decimals="2">66.39</span>L</div>
+          <div class="hs-sub">Achieved × client rate</div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <main class="dash">
+  <div class="dash">
 
     <!-- KPI Cards Grid -->
     <section class="kpi-grid">
       <div class="kpi anim-card" data-d="0">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
-        <div class="kpi-body"><div class="kpi-label">Total Open</div><div class="kpi-val" id="kpi-open">714</div><div class="kpi-sub">Active pipeline</div></div>
+        <div class="kpi-body"><div class="kpi-label">Total Open</div><div class="kpi-val" id="kpi-open">—</div><div class="kpi-sub">Active pipeline</div></div>
       </div>
       <div class="kpi anim-card" data-d="1">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div>
-        <div class="kpi-body"><div class="kpi-label">Daily Avg Tonnage</div><div class="kpi-val" id="kpi-daily-avg">—</div><div class="kpi-sub">Month ÷ Days</div></div>
+        <div class="kpi-body"><div class="kpi-label">Daily Avg Tonnage</div><div class="kpi-val" id="kpi-daily-avg">—</div><div class="kpi-sub">Month ÷ Active Days</div></div>
       </div>
       <div class="kpi kpi-accent anim-card clickable" data-d="2" onclick="goToEddDetail()" tabindex="0">
         <div class="kpi-icon accent-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
-        <div class="kpi-body"><div class="kpi-label">EDD Crossed</div><div class="kpi-val" id="kpi-edd">234</div><div class="kpi-sub" id="kpi-edd-pct">33% of open</div></div>
+        <div class="kpi-body"><div class="kpi-label">EDD Crossed</div><div class="kpi-val" id="kpi-edd">—</div><div class="kpi-sub" id="kpi-edd-pct">of open</div></div>
         <div class="pulse-dot"></div>
       </div>
       <div class="kpi anim-card" data-d="3">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
-        <div class="kpi-body"><div class="kpi-label">Due Tomorrow</div><div class="kpi-val" id="kpi-due">69</div><div class="kpi-sub">At risk delivery</div></div>
+        <div class="kpi-body"><div class="kpi-label">Due Tomorrow</div><div class="kpi-val" id="kpi-due">—</div><div class="kpi-sub">At risk delivery</div></div>
       </div>
       <div class="kpi anim-card" data-d="4">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
-        <div class="kpi-body"><div class="kpi-label">Booked Yesterday</div><div class="kpi-val" id="kpi-booked">46</div><div class="kpi-sub" id="kpi-booked-sub">Latest batch</div></div>
+        <div class="kpi-body"><div class="kpi-label">Booked Yesterday</div><div class="kpi-val" id="kpi-booked">—</div><div class="kpi-sub" id="kpi-booked-sub">Latest batch</div></div>
       </div>
       <div class="kpi anim-card" data-d="5">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
@@ -167,7 +130,7 @@
       </div>
       <div class="kpi anim-card" data-d="7">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/><path d="M12 12v6"/></svg></div>
-        <div class="kpi-body"><div class="kpi-label">Sales Target</div><div class="kpi-val" id="kpi-target-money">₹84,45,000</div><div class="kpi-sub">Fixed monthly target</div></div>
+        <div class="kpi-body"><div class="kpi-label">Sales Target</div><div class="kpi-val" id="kpi-target-money">—</div><div class="kpi-sub">Fixed monthly target</div></div>
       </div>
       <div class="kpi anim-card" data-d="8">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
@@ -175,380 +138,52 @@
       </div>
     </section>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         PANEL 0: FLEET & DISPATCH COMMAND (Inspired by the uploaded design)
-         ═══════════════════════════════════════════════════════════════ -->
-    <div id="tab-dispatch" class="panel active">
-      <div class="dispatch-hero-card anim-up">
-        <div class="dispatch-header-row">
-          <div>
-            <h3 class="dispatch-card-title">Load Planning & Vehicle Allocation</h3>
-            <p class="dispatch-card-sub">Active fleet distribution across key transits and cargo weight optimization.</p>
-          </div>
-          <div class="dispatch-actions">
-            <button class="dispatch-btn dispatch-btn-outline" onclick="exportEddToExcel()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>Export Dispatch List</span>
-            </button>
-            <button class="dispatch-btn dispatch-btn-primary" onclick="goToEddDetail()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span>View 234 Delayed Orders</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Centerpiece: Realistic Truck Cargo Visualization & Floating Load Plan -->
-        <div class="fleet-visual-container">
-          <div class="truck-graphic-wrap">
-            <!-- Sleek Truck SVG Graphic -->
-            <div class="truck-art-box">
-              <svg viewBox="0 0 850 260" class="truck-svg" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="cabinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#242424"/>
-                    <stop offset="50%" stop-color="#181818"/>
-                    <stop offset="100%" stop-color="#0f0f0f"/>
-                  </linearGradient>
-                  <linearGradient id="trailerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#202020"/>
-                    <stop offset="100%" stop-color="#141414"/>
-                  </linearGradient>
-                  <linearGradient id="orangeGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#f58220"/>
-                    <stop offset="100%" stop-color="#ff9d42"/>
-                  </linearGradient>
-                </defs>
-
-                <!-- Ground Shadow -->
-                <ellipse cx="430" cy="245" rx="400" ry="8" fill="rgba(0,0,0,0.4)" filter="blur(6px)"/>
-
-                <!-- Trailer Body -->
-                <rect x="230" y="50" width="570" height="145" rx="8" fill="url(#trailerGrad)" stroke="#333" stroke-width="2"/>
-                <rect x="235" y="55" width="560" height="6" fill="#f58220" opacity="0.8"/>
-
-                <!-- Cargo Bay Compartments Grid -->
-                <!-- Column 1 -->
-                <rect x="245" y="68" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="275" y="85" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">500 kg</text>
-                <rect x="245" y="110" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="275" y="127" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">CARRIER</text>
-                <rect x="245" y="152" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="275" y="169" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">820 kg</text>
-
-                <!-- Column 2 -->
-                <rect x="315" y="68" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="345" y="85" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">BOMBAX</text>
-                <rect x="315" y="110" width="60" height="36" rx="4" fill="#251c14" stroke="#f58220" stroke-width="1.5"/>
-                <text x="345" y="128" fill="#f58220" font-size="11" font-weight="700" font-family="Inter" text-anchor="middle">+ LOAD</text>
-                <rect x="315" y="152" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="345" y="169" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">750 kg</text>
-
-                <!-- Column 3 -->
-                <rect x="385" y="68" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="415" y="85" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">HAIER</text>
-                <rect x="385" y="110" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="415" y="127" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">500 kg</text>
-                <rect x="385" y="152" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="415" y="169" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">SUKUGA</text>
-
-                <!-- Column 4 -->
-                <rect x="455" y="68" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="485" y="85" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">LOOM</text>
-                <rect x="455" y="110" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="485" y="127" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">KUMAR</text>
-                <rect x="455" y="152" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="485" y="169" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">620 kg</text>
-
-                <!-- Column 5 -->
-                <rect x="525" y="68" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="555" y="85" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">ONEIRIC</text>
-                <rect x="525" y="110" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="555" y="127" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">500 kg</text>
-                <rect x="525" y="152" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="555" y="169" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">VAIDRISHI</text>
-
-                <!-- Column 6 -->
-                <rect x="595" y="68" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="625" y="85" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">COSMOS</text>
-                <rect x="595" y="110" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="625" y="127" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">EPSON</text>
-                <rect x="595" y="152" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="625" y="169" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">HERCULES</text>
-
-                <!-- Column 7 -->
-                <rect x="665" y="68" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="695" y="85" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">MEDGLOBE</text>
-                <rect x="665" y="110" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="695" y="127" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">MITRAS</text>
-                <rect x="665" y="152" width="60" height="36" rx="4" fill="#1b1b1b" stroke="#2c2c2c"/>
-                <text x="695" y="169" fill="#888" font-size="10" font-family="Inter" text-anchor="middle">CONFICORE</text>
-
-                <!-- Rear Section & Lights -->
-                <rect x="735" y="68" width="55" height="120" rx="4" fill="#181818" stroke="#292929"/>
-                <rect x="780" y="160" width="6" height="16" rx="2" fill="#ef4444"/>
-
-                <!-- Truck Cabin -->
-                <path d="M70,195 L215,195 L215,75 L150,75 L110,120 L70,140 Z" fill="url(#cabinGrad)" stroke="#3a3a3a" stroke-width="2"/>
-                <path d="M115,120 L150,85 L180,85 L180,120 Z" fill="#102030" stroke="#2a4055" stroke-width="1.5"/>
-                <!-- Headlight -->
-                <polygon points="70,165 60,175 70,180" fill="#f58220" filter="drop-shadow(0 0 6px #f58220)"/>
-                <!-- Grill -->
-                <line x1="75" y1="150" x2="75" y2="190" stroke="#333" stroke-width="3"/>
-                <line x1="85" y1="150" x2="85" y2="190" stroke="#333" stroke-width="3"/>
-                <line x1="95" y1="150" x2="95" y2="190" stroke="#333" stroke-width="3"/>
-
-                <!-- Truck Chassis & Connection -->
-                <rect x="210" y="175" width="25" height="15" fill="#222"/>
-
-                <!-- Wheels -->
-                <!-- Front Cabin Wheel -->
-                <circle cx="120" cy="205" r="28" fill="#111" stroke="#333" stroke-width="4"/>
-                <circle cx="120" cy="205" r="14" fill="#222" stroke="#555" stroke-width="2"/>
-                <circle cx="120" cy="205" r="6" fill="#f58220"/>
-
-                <!-- Rear Cabin Wheels -->
-                <circle cx="200" cy="205" r="28" fill="#111" stroke="#333" stroke-width="4"/>
-                <circle cx="200" cy="205" r="14" fill="#222" stroke="#555" stroke-width="2"/>
-                <circle cx="200" cy="205" r="6" fill="#777"/>
-
-                <!-- Trailer Wheels (Tandem) -->
-                <circle cx="670" cy="205" r="28" fill="#111" stroke="#333" stroke-width="4"/>
-                <circle cx="670" cy="205" r="14" fill="#222" stroke="#555" stroke-width="2"/>
-                <circle cx="670" cy="205" r="6" fill="#777"/>
-
-                <circle cx="735" cy="205" r="28" fill="#111" stroke="#333" stroke-width="4"/>
-                <circle cx="735" cy="205" r="14" fill="#222" stroke="#555" stroke-width="2"/>
-                <circle cx="735" cy="205" r="6" fill="#777"/>
-              </svg>
-            </div>
-
-            <!-- Shipment Card Slider (Inspired by the uploaded design) -->
-            <div class="shipment-selector-slider">
-              <div class="shipment-pill-item active">
-                <div class="spi-head"><span class="spi-title">Shipment Batch</span><span class="spi-badge">Active</span></div>
-                <div class="spi-id">MVS/26-27/AUG-31</div>
-                <div class="spi-meta"><span>Carrier Ref</span><span>303,147 kg</span></div>
-              </div>
-              <div class="shipment-pill-item">
-                <div class="spi-head"><span class="spi-title">Shipment Batch</span><span class="spi-badge">Active</span></div>
-                <div class="spi-id">MVS/26-27/BOMBAX</div>
-                <div class="spi-meta"><span>Bombax</span><span>78,666 kg</span></div>
-              </div>
-              <div class="shipment-pill-item">
-                <div class="spi-head"><span class="spi-title">Shipment Batch</span><span class="spi-badge">Active</span></div>
-                <div class="spi-id">MVS/26-27/CTD-EXP</div>
-                <div class="spi-meta"><span>Carrier CTD</span><span>78,318 kg</span></div>
-              </div>
-              <div class="shipment-pill-item">
-                <div class="spi-head"><span class="spi-title">Shipment Batch</span><span class="spi-badge">Delayed</span></div>
-                <div class="spi-id">MVS/26-27/EDD-XP</div>
-                <div class="spi-meta"><span>XP India</span><span>117 delayed</span></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Floating Load Planning Panel (Glassmorphic card like the mockup) -->
-          <div class="load-planning-panel">
-            <div class="lp-head">
-              <div>
-                <span class="lp-tag">C2-11_1</span>
-                <h4 class="lp-title">Load Planning</h4>
-              </div>
-              <span class="lp-status-dot"></span>
-            </div>
-
-            <div class="lp-metrics-row">
-              <div class="lp-metric-box">
-                <span class="lpm-label">Capacity</span>
-                <span class="lpm-val">84.2%</span>
-              </div>
-              <div class="lp-metric-box">
-                <span class="lpm-label">Transporters</span>
-                <span class="lpm-val">6 Carriers</span>
-              </div>
-              <div class="lp-metric-box">
-                <span class="lpm-label">Dispatch Status</span>
-                <span class="lpm-val" style="color:var(--orange)">Optimal</span>
-              </div>
-            </div>
-
-            <div class="lp-table-wrap">
-              <table class="lp-table">
-                <thead>
-                  <tr>
-                    <th>Item / Client</th>
-                    <th>Transporter</th>
-                    <th>Seq.</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>Carrier Refrig.</strong></td>
-                    <td>XP INDIA</td>
-                    <td>01</td>
-                    <td><span class="cv-chip cv-chip-vendor">Transit</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Bombax</strong></td>
-                    <td>EKART</td>
-                    <td>02</td>
-                    <td><span class="cv-chip cv-chip-customer">At Mall</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Haier CCR</strong></td>
-                    <td>DP WORLD</td>
-                    <td>03</td>
-                    <td><span class="cv-chip cv-chip-vendor">Hub Log</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Loom Solar</strong></td>
-                    <td>RIVIGO</td>
-                    <td>04</td>
-                    <td><span class="cv-chip cv-chip-vendor">Transit</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Oneric App.</strong></td>
-                    <td>GATI</td>
-                    <td>05</td>
-                    <td><span class="cv-chip cv-chip-customer">Consignee</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="lp-footer-actions">
-              <button class="lp-action-btn" onclick="switchTab('tonnage', document.getElementById('nav-btn-tonnage'))">View Full Tonnage</button>
-              <button class="lp-action-btn primary" onclick="goToEddDetail()">Filter Delays</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dispatch Timeline / Gantt Chart (Inspired by the bottom Gantt chart in the mockup) -->
-        <div class="gantt-container">
-          <div class="gantt-header">
-            <div>
-              <h4 class="gantt-title">Dispatch & Transit Timeline</h4>
-              <p class="gantt-sub">Real-time order stage progression and transit schedule intervals.</p>
-            </div>
-            <div class="gantt-time-legend">
-              <span class="gtl-item"><span class="gtl-dot" style="background:#7c3aed"></span>SLO_DELHI / IN-TRANSIT</span>
-              <span class="gtl-item"><span class="gtl-dot" style="background:#f58220"></span>EDD DELAY WINDOW</span>
-              <span class="gtl-item"><span class="gtl-dot" style="background:#2563eb"></span>SCHEDULED DELIVERY</span>
-            </div>
-          </div>
-
-          <!-- Interactive Gantt Track Grid -->
-          <div class="gantt-grid-wrap">
-            <div class="gantt-grid">
-              <!-- Timeline Date Column Headers -->
-              <div class="gantt-col-header">
-                <span class="gch-date">Aug 28</span>
-                <span class="gch-times">00:00 · 06:00 · 12:00 · 18:00</span>
-              </div>
-              <div class="gantt-col-header">
-                <span class="gch-date">Aug 29</span>
-                <span class="gch-times">00:00 · 06:00 · 12:00 · 18:00</span>
-              </div>
-              <div class="gantt-col-header">
-                <span class="gch-date">Aug 30</span>
-                <span class="gch-times">00:00 · 06:00 · 12:00 · 18:00</span>
-              </div>
-              <div class="gantt-col-header active">
-                <span class="gch-date">Aug 31 (TODAY)</span>
-                <span class="gch-times">00:00 · 06:00 · 12:00 · 18:00</span>
-                <div class="current-time-cursor" style="left:54%"></div>
-              </div>
-            </div>
-
-            <!-- Gantt Row 1 -->
-            <div class="gantt-row">
-              <div class="gantt-label">
-                <span class="gl-id">MVS/26-27/12533</span>
-                <span class="gl-name">Carrier Refrigeration (XP INDIA)</span>
-              </div>
-              <div class="gantt-bars-track">
-                <div class="gantt-bar-block bar-purple" style="left:10%;width:42%">
-                  <span>DEL_MUMBAI · IN-TRANSIT</span>
-                </div>
-                <div class="gantt-bar-block bar-orange" style="left:52%;width:35%">
-                  <span>EDD CROSSED · HIGHWAY BACKLOG</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Gantt Row 2 -->
-            <div class="gantt-row">
-              <div class="gantt-label">
-                <span class="gl-id">MVS/26-27/11861</span>
-                <span class="gl-name">Bombax (EKART)</span>
-              </div>
-              <div class="gantt-bars-track">
-                <div class="gantt-bar-block bar-purple" style="left:20%;width:35%">
-                  <span>DEL_BLR · HUB SORTING</span>
-                </div>
-                <div class="gantt-bar-block bar-orange" style="left:55%;width:30%">
-                  <span>MALL TIMING RESTRICTION</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Gantt Row 3 -->
-            <div class="gantt-row">
-              <div class="gantt-label">
-                <span class="gl-id">MVS/26-27/11661</span>
-                <span class="gl-name">Haier CCR (DP WORLD)</span>
-              </div>
-              <div class="gantt-bars-track">
-                <div class="gantt-bar-block bar-blue" style="left:15%;width:40%">
-                  <span>DEL_PUNE · REGIONAL HUB</span>
-                </div>
-                <div class="gantt-bar-block bar-orange" style="left:55%;width:25%">
-                  <span>ROUTE DIVERSION</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Gantt Row 4 -->
-            <div class="gantt-row">
-              <div class="gantt-label">
-                <span class="gl-id">MVS/26-27/11747</span>
-                <span class="gl-name">Loom Solar (RIVIGO)</span>
-              </div>
-              <div class="gantt-bars-track">
-                <div class="gantt-bar-block bar-blue" style="left:25%;width:35%">
-                  <span>DEL_JAIPUR · DISPATCHED</span>
-                </div>
-                <div class="gantt-bar-block bar-orange" style="left:60%;width:28%">
-                  <span>WEATHER DELAY (RAIN)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- Navigation Tabs (Only the 5 original panels) -->
+    <div class="tabs" role="tablist">
+      <button class="tab active" role="tab" id="tab-btn-classify" onclick="switchTab('classify',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Classification</span>
+      </button>
+      <button class="tab" role="tab" id="tab-btn-tonnage" onclick="switchTab('tonnage',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        <span>Tonnage & Forecast</span>
+      </button>
+      <button class="tab" role="tab" id="tab-btn-daily" onclick="switchTab('daily',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Daily Avg & KAM</span>
+      </button>
+      <button class="tab" role="tab" id="tab-btn-edd" onclick="switchTab('edd',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <span>EDD Crossed</span>
+        <span class="tab-count" id="tab-edd-badge">0</span>
+      </button>
+      <button class="tab" role="tab" id="tab-btn-reasons" onclick="switchTab('reasons',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span>Delay Analysis</span>
+        <span class="tab-count" id="tab-reasons-badge">0</span>
+      </button>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════
          PANEL 1: CLASSIFICATION
          ═══════════════════════════════════════════════════════════════ -->
-    <div id="tab-classify" class="panel">
+    <div id="tab-classify" class="panel active">
       <div class="strip anim-up">
-        <div class="strip-item"><span class="sdot" style="background:#f58220"></span>EDD Crossed<strong id="strip-edd">234</strong></div>
-        <div class="strip-item"><span class="sdot" style="background:#8b8b8b"></span>In Transit<strong id="strip-transit">480</strong></div>
-        <div class="strip-item"><span class="sdot" style="background:#5a5a5a"></span>Due Tomorrow<strong id="strip-due">69</strong></div>
-        <div class="strip-item"><span class="sdot" style="background:#3a3a3a"></span>Booked<strong id="strip-booked">46</strong></div>
+        <div class="strip-item"><span class="sdot" style="background:#f58220"></span>EDD Crossed<strong id="strip-edd">—</strong></div>
+        <div class="strip-item"><span class="sdot" style="background:#8b8b8b"></span>In Transit<strong id="strip-transit">—</strong></div>
+        <div class="strip-item"><span class="sdot" style="background:#5a5a5a"></span>Due Tomorrow<strong id="strip-due">—</strong></div>
+        <div class="strip-item"><span class="sdot" style="background:#3a3a3a"></span>Booked<strong id="strip-booked">—</strong></div>
       </div>
 
       <div class="row2">
         <div class="card anim-up">
-          <div class="card-head"><span class="stitle">Shipment Status Distribution</span></div>
+          <div class="card-head"><span class="stitle">Shipment Status</span></div>
           <div class="donut-wrap">
             <div class="donut-legend">
-              <div class="dl-row"><span class="dl-dot" style="background:#f58220"></span>EDD Crossed<strong id="dl-edd">234</strong></div>
-              <div class="dl-row"><span class="dl-dot" style="background:#8b8b8b"></span>In Transit<strong id="dl-transit">480</strong></div>
-              <div class="dl-row"><span class="dl-dot" style="background:#5a5a5a"></span>Due Tomorrow<strong id="dl-due">69</strong></div>
-              <div class="dl-row"><span class="dl-dot" style="background:#3a3a3a"></span>Booked<strong id="dl-booked">46</strong></div>
+              <div class="dl-row"><span class="dl-dot" style="background:#f58220"></span>EDD Crossed<strong id="dl-edd">—</strong></div>
+              <div class="dl-row"><span class="dl-dot" style="background:#8b8b8b"></span>In Transit<strong id="dl-transit">—</strong></div>
+              <div class="dl-row"><span class="dl-dot" style="background:#5a5a5a"></span>Due Tomorrow<strong id="dl-due">—</strong></div>
+              <div class="dl-row"><span class="dl-dot" style="background:#3a3a3a"></span>Booked<strong id="dl-booked">—</strong></div>
             </div>
             <div class="chart-box" style="height:240px"><canvas id="statusDonut"></canvas></div>
           </div>
@@ -577,12 +212,12 @@
       <div class="card forecast-card anim-up">
         <div class="card-head"><span class="stitle">Revenue Forecast — Monthly Target Trajectory</span></div>
         <div class="forecast-grid">
-          <div class="fstat"><div class="fstat-label">Total Target</div><div class="fstat-val" id="forecast-target-money">₹84,45,000</div></div>
+          <div class="fstat"><div class="fstat-label">Total Target</div><div class="fstat-val" id="forecast-target-money">—</div></div>
           <div class="fstat"><div class="fstat-label">Sales Till Date</div><div class="fstat-val" id="forecast-sales-money">—</div></div>
           <div class="fstat highlight"><div class="fstat-label">Predicted Month-End</div><div class="fstat-val" id="forecast-predicted-money">—</div></div>
         </div>
         <div class="forecast-verdict"><span class="fbadge" id="forecast-badge">—</span><span id="forecast-verdict-text"></span></div>
-        <div class="fbar-wrap"><div class="fbar-track"><div class="fbar-fill" id="forecast-bar-fill"></div><div class="fbar-marker" id="forecast-bar-target-marker"></div></div><div class="fbar-labels"><span>₹0</span><span id="forecast-bar-target-label">Target: ₹84,45,000</span></div></div>
+        <div class="fbar-wrap"><div class="fbar-track"><div class="fbar-fill" id="forecast-bar-fill"></div><div class="fbar-marker" id="forecast-bar-target-marker"></div></div><div class="fbar-labels"><span>₹0</span><span id="forecast-bar-target-label">Target</span></div></div>
         <p class="footnote" id="forecast-explain"></p>
       </div>
 
@@ -600,9 +235,9 @@
       <div class="card anim-up">
         <span class="stitle">KAM Performance Summary</span>
         <div class="forecast-grid" style="margin-top:14px">
-          <div class="fstat"><div class="fstat-label">Total Target</div><div class="fstat-val" id="kam-total-target">631,685</div></div>
-          <div class="fstat"><div class="fstat-label">Total Achieved</div><div class="fstat-val" id="kam-total-achieved">392,666</div></div>
-          <div class="fstat highlight"><div class="fstat-label">Total % Completion</div><div class="fstat-val" id="kam-total-pct">62.16</div></div>
+          <div class="fstat"><div class="fstat-label">Total Target</div><div class="fstat-val" id="kam-total-target">—</div></div>
+          <div class="fstat"><div class="fstat-label">Total Achieved</div><div class="fstat-val" id="kam-total-achieved">—</div></div>
+          <div class="fstat highlight"><div class="fstat-label">Total % Completion</div><div class="fstat-val" id="kam-total-pct">—</div></div>
         </div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>KAM Name</th><th>Target (kg)</th><th>Achieved (kg)</th><th>% Done</th></tr></thead><tbody id="kam-summary-body"></tbody></table></div>
       </div>
@@ -615,7 +250,7 @@
       <div class="card anim-up">
         <span class="stitle">Daily Average & Forecast</span>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Client</th><th>KAM</th><th>Target</th><th>Achieved</th><th>%</th><th>Days</th><th>Avg/Day</th><th>Remaining</th><th>Days Left*</th></tr></thead><tbody id="daily-table-body"></tbody></table></div>
-        <p class="footnote">* Extrapolated from current avg. Remaining days in month: extrapolated straight-line.</p>
+        <p class="footnote">* Extrapolated from current avg. Remaining days in month calculated straight-line.</p>
       </div>
       <div class="row2">
         <div class="card anim-up"><span class="stitle">Avg kg/Day (Top 10)</span><div class="chart-box" style="height:360px"><canvas id="avgDayChart"></canvas></div></div>
@@ -628,7 +263,7 @@
          ═══════════════════════════════════════════════════════════════ -->
     <div id="tab-edd" class="panel">
       <div class="edd-kpi-grid">
-        <div class="edd-kpi anim-card" data-d="0"><div class="edd-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><div class="edd-title">Total Delayed</div><div class="edd-val" id="edd-total-count">234</div><div class="edd-sub">Active crossed EDD</div></div>
+        <div class="edd-kpi anim-card" data-d="0"><div class="edd-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><div class="edd-title">Total Delayed</div><div class="edd-val" id="edd-total-count">—</div><div class="edd-sub">Active crossed EDD</div></div>
         <div class="edd-kpi anim-card" data-d="1"><div class="edd-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div><div class="edd-title">Primary Reason</div><div class="edd-val" id="edd-top-reason-name">—</div><div class="edd-sub" id="edd-top-reason-pct">0%</div></div>
         <div class="edd-kpi anim-card" data-d="2"><div class="edd-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13"/><polygon points="23 7 16 12 16 3"/></svg></div><div class="edd-title">Top Lagging Transporter</div><div class="edd-val" id="edd-worst-carrier">—</div><div class="edd-sub" id="edd-worst-carrier-count">0 delayed</div></div>
         <div class="edd-kpi wide anim-card" data-d="3"><div class="edd-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div><div class="edd-title">Delay Reasons Breakdown</div><div id="edd-reason-bars" class="reason-bars"></div></div>
@@ -742,7 +377,7 @@
       </div>
     </div>
 
-  </main>
+  </div>
 
   <!-- In-Browser Upload / Preview Modal -->
   <div id="upload-modal" class="modal-overlay" style="display:none">
@@ -752,9 +387,9 @@
         <button type="button" class="modal-close" onclick="closeUploadModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Drag & drop your updated operational Excel sheet or paste your Google Sheet link below to immediately preview live numbers on this dashboard.</p>
+        <p class="modal-desc">Drag & drop your updated operational Excel sheet (.xlsx) or click below to instantly preview live numbers on this dashboard.</p>
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('excel-file-input').click()">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <span class="drop-text">Click or drop .xlsx workbook here</span>
           <span class="drop-sub">Supported sheets: Open, EDD Crossed, Booked, Tonnage, Target</span>
           <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelUpload(event)">
@@ -765,8 +400,8 @@
 
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-brand"><svg width="18" height="18" viewBox="0 0 40 40"><rect width="40" height="40" rx="6" fill="#f58220"/><path d="M10 28V12l5 10 5-10v16" stroke="#0f0f0f" stroke-width="2.5" stroke-linecap="round"/></svg>MVIKAS Logistics · Command Center</span>
-      <span class="footer-note" id="footer-sync-note">Automated sync daily at 1:00 PM IST via GitHub Actions</span>
+      <span class="footer-brand"><svg width="18" height="18" viewBox="0 0 40 40"><rect width="40" height="40" rx="6" fill="#f58220"/><path d="M10 28V12l5 10 5-10v16" stroke="#0f0f0f" stroke-width="2.5" stroke-linecap="round"/></svg>MVIKAS Logistics · Executive Operations</span>
+      <span class="footer-note" id="footer-sync-note">Auto-synced daily at 1:00 PM IST via GitHub Actions</span>
     </div>
   </footer>
 
