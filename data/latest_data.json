@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "generatedAt": "2026-09-11T12:17:34.311195",
+    "generatedAt": "2026-09-12T11:41:03.001350",
     "sourceName": "edit?usp=sharing",
-    "reportDate": "September 11, 2026",
+    "reportDate": "September 12, 2026",
     "monthName": "September",
     "year": 2026,
-    "activeDays": 10,
+    "activeDays": 11,
     "daysInMonth": 30
   },
   "kpis": {
@@ -16,11 +16,11 @@
     "bookedTotal": 46,
     "dailyTonnageKg": 22398.0,
     "monthlyTonnageKg": 564050.66,
-    "dailyAvgKg": 56405,
+    "dailyAvgKg": 51277,
     "targetRevenue": 8445000.0,
     "achievedRevenue": 7016697.18,
-    "predictedRevenue": 21050091.54,
-    "predictedPct": 249.3
+    "predictedRevenue": 19136446.86,
+    "predictedPct": 226.6
   },
   "clients": [
     {
@@ -28,7 +28,7 @@
       "person": "Sangeet Dhasmana",
       "target": 293073.0,
       "achieved": 317027.86,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 80206.0,
@@ -44,7 +44,7 @@
         }
       },
       "pct": 108,
-      "avgDay": 31703,
+      "avgDay": 28821,
       "remaining": 0,
       "daysNeeded": 0
     },
@@ -53,7 +53,7 @@
       "person": "Deepak Sharma",
       "target": 74460.0,
       "achieved": 85335.06,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 25101.0,
@@ -69,7 +69,7 @@
         }
       },
       "pct": 115,
-      "avgDay": 8534,
+      "avgDay": 7758,
       "remaining": 0,
       "daysNeeded": 0
     },
@@ -78,7 +78,7 @@
       "person": "Deepak Sharma",
       "target": 13501.0,
       "achieved": 2211.71,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 3776.0,
@@ -94,16 +94,16 @@
         }
       },
       "pct": 16,
-      "avgDay": 221,
+      "avgDay": 201,
       "remaining": 11289.29,
-      "daysNeeded": 51.1
+      "daysNeeded": 56.2
     },
     {
       "name": "Paramount Surgimed Ltd",
       "person": "Deepak Sharma",
       "target": 12039.0,
       "achieved": 329.97,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 722.0,
@@ -119,16 +119,16 @@
         }
       },
       "pct": 3,
-      "avgDay": 33,
+      "avgDay": 30,
       "remaining": 11709.03,
-      "daysNeeded": 354.8
+      "daysNeeded": 390.3
     },
     {
       "name": "Haier CCR",
       "person": "Deepak Sharma",
       "target": 36298.0,
       "achieved": 8267.23,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 18946.0,
@@ -144,16 +144,16 @@
         }
       },
       "pct": 23,
-      "avgDay": 827,
+      "avgDay": 752,
       "remaining": 28030.77,
-      "daysNeeded": 33.9
+      "daysNeeded": 37.3
     },
     {
       "name": "Bombax",
       "person": "Sangeet Dhasmana",
       "target": 97357.0,
       "achieved": 79884.77,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 30657.0,
@@ -169,16 +169,16 @@
         }
       },
       "pct": 82,
-      "avgDay": 7988,
+      "avgDay": 7262,
       "remaining": 17472.229999999996,
-      "daysNeeded": 2.2
+      "daysNeeded": 2.4
     },
     {
       "name": "Kumar Services",
       "person": "Deepak Sharma",
       "target": 13725.0,
       "achieved": 13763.6,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 4345.0,
@@ -194,7 +194,7 @@
         }
       },
       "pct": 100,
-      "avgDay": 1376,
+      "avgDay": 1251,
       "remaining": 0,
       "daysNeeded": 0
     },
@@ -203,7 +203,7 @@
       "person": "Deepak Sharma",
       "target": 3631.0,
       "achieved": 0.0,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 2905.0,
@@ -228,7 +228,7 @@
       "person": "Deepak Sharma",
       "target": 15232.0,
       "achieved": 8256.55,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 7019.0,
@@ -244,16 +244,16 @@
         }
       },
       "pct": 54,
-      "avgDay": 826,
+      "avgDay": 751,
       "remaining": 6975.450000000001,
-      "daysNeeded": 8.4
+      "daysNeeded": 9.3
     },
     {
       "name": "Vaidrishi Laboratories Pvt Ltd",
       "person": "Sangeet Dhasmana",
       "target": 2357.0,
       "achieved": 2361.51,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 534.0,
@@ -269,7 +269,7 @@
         }
       },
       "pct": 100,
-      "avgDay": 236,
+      "avgDay": 215,
       "remaining": 0,
       "daysNeeded": 0
     },
@@ -278,7 +278,7 @@
       "person": "Deepak Sharma",
       "target": 10142.0,
       "achieved": 11469.4,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 1797.0,
@@ -294,7 +294,7 @@
         }
       },
       "pct": 113,
-      "avgDay": 1147,
+      "avgDay": 1043,
       "remaining": 0,
       "daysNeeded": 0
     },
@@ -303,7 +303,7 @@
       "person": "Deepak Sharma",
       "target": 11398.0,
       "achieved": 8565.98,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 4689.0,
@@ -319,16 +319,16 @@
         }
       },
       "pct": 75,
-      "avgDay": 857,
+      "avgDay": 779,
       "remaining": 2832.0200000000004,
-      "daysNeeded": 3.3
+      "daysNeeded": 3.6
     },
     {
       "name": "Loom Solar Pvt Ltd",
       "person": "Deepak Sharma",
       "target": 14458.0,
       "achieved": 12475.0,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 3075.0,
@@ -344,16 +344,16 @@
         }
       },
       "pct": 86,
-      "avgDay": 1248,
+      "avgDay": 1134,
       "remaining": 1983.0,
-      "daysNeeded": 1.6
+      "daysNeeded": 1.7
     },
     {
       "name": "Medical Science",
       "person": "Sangeet Dhasmana",
       "target": 6013.75,
       "achieved": 6907.05,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 0.0,
@@ -369,7 +369,7 @@
         }
       },
       "pct": 115,
-      "avgDay": 691,
+      "avgDay": 628,
       "remaining": 0,
       "daysNeeded": 0
     },
@@ -378,7 +378,7 @@
       "person": "Sangeet Dhasmana",
       "target": 3000.0,
       "achieved": 2125.8,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 1444.0,
@@ -394,16 +394,16 @@
         }
       },
       "pct": 71,
-      "avgDay": 213,
+      "avgDay": 193,
       "remaining": 874.1999999999998,
-      "daysNeeded": 4.1
+      "daysNeeded": 4.5
     },
     {
       "name": "Conficore",
       "person": "Sangeet Dhasmana",
       "target": 5000.0,
       "achieved": 2158.97,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 5000.0,
@@ -419,16 +419,16 @@
         }
       },
       "pct": 43,
-      "avgDay": 216,
+      "avgDay": 196,
       "remaining": 2841.03,
-      "daysNeeded": 13.2
+      "daysNeeded": 14.5
     },
     {
       "name": "HERCULES NUTRA",
       "person": "Sangeet Dhasmana",
       "target": 10000.0,
       "achieved": 1343.22,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 3333.33,
@@ -444,16 +444,16 @@
         }
       },
       "pct": 13,
-      "avgDay": 134,
+      "avgDay": 122,
       "remaining": 8656.78,
-      "daysNeeded": 64.6
+      "daysNeeded": 71.0
     },
     {
       "name": "MEDGLOBE THERAPEUTICS",
       "person": "Sangeet Dhasmana",
       "target": 10000.0,
       "achieved": 1315.98,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 3333.33,
@@ -469,16 +469,16 @@
         }
       },
       "pct": 13,
-      "avgDay": 132,
+      "avgDay": 120,
       "remaining": 8684.02,
-      "daysNeeded": 65.8
+      "daysNeeded": 72.4
     },
     {
       "name": "Khusbhu Enterprises",
       "person": "Deepak Sharma",
       "target": 0.0,
       "achieved": 251.0,
-      "activeDays": 10,
+      "activeDays": 11,
       "periods": {
         "first10": {
           "target": 0.0,
@@ -494,7 +494,7 @@
         }
       },
       "pct": 999,
-      "avgDay": 25,
+      "avgDay": 23,
       "remaining": 0,
       "daysNeeded": 0
     }
